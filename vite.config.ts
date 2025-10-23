@@ -92,8 +92,8 @@ export default () =>
           ],
         },
         manifest: {
-          name: "Outline",
-          short_name: "Outline",
+          name: "xFoundry Docs",
+          short_name: "xFoundry",
           theme_color: "#fff",
           background_color: "#fff",
           start_url: "/",

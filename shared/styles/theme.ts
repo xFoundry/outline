@@ -24,7 +24,7 @@ const defaultColors: Colors = {
   black10: "rgba(0, 0, 0, 0.1)",
   black50: "rgba(0, 0, 0, 0.50)",
   black75: "rgba(0, 0, 0, 0.75)",
-  accent: "#0366d6",
+  accent: "#07222d",
   yellow: "#EDBA07",
   warmGrey: "#EDF2F7",
   danger: "#ed2651",

@@ -770,7 +770,7 @@ export class Environment {
    * The product name
    */
   @Public
-  public APP_NAME = "Outline";
+  public APP_NAME = "xFoundry Docs";
 
   /**
    * Returns true if the current installation is the cloud hosted version at

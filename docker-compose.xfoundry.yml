@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: xfoundry-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: xfoundry-postgres
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-outline}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-outline}
+      POSTGRES_DB: ${POSTGRES_DB:-outline}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-outline}"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  outline:
+    # Use your built image or build from source
+    image: xfoundry/outline-docs:latest
+    # Or build from local source:
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile.base
+    #   args:
+    #     BASE_IMAGE: xfoundry/outline-base:latest
+    container_name: xfoundry-docs
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      # Override specific env vars for Docker
+      DATABASE_URL: postgres://${POSTGRES_USER:-outline}:${POSTGRES_PASSWORD:-outline}@postgres:5432/${POSTGRES_DB:-outline}
+      REDIS_URL: redis://redis:6379
+      URL: ${URL:-http://localhost:3000}
+      PORT: 3000
+      # File storage
+      FILE_STORAGE: local
+      FILE_STORAGE_LOCAL_ROOT_DIR: /var/lib/outline/data
+    volumes:
+      - outline_data:/var/lib/outline/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/_health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  redis_data:
+    driver: local
+  postgres_data:
+    driver: local
+  outline_data:
+    driver: local
+
+networks:
+  default:
+    name: xfoundry-network

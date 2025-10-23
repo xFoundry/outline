@@ -61,7 +61,7 @@ export const renderApp = async (
 ) => {
   const {
     title = env.APP_NAME,
-    description = "A modern team knowledge base for your internal documentation, product specs, support answers, meeting notes, onboarding, &amp; more…",
+    description = "xFoundry's internal knowledge base and documentation platform",
     canonical = "",
     content = "",
     shortcutIcon = `${env.CDN_URL || ""}/images/favicon-32.png`,

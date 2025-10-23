@@ -1,8 +1,8 @@
 {
-  "name": "Outline",
-  "description": "Open source wiki and knowledge base for growing teams",
+  "name": "xFoundry Docs",
+  "description": "xFoundry's internal knowledge base and documentation platform",
   "website": "https://www.getoutline.com/",
-  "repository": "https://github.com/outline/outline",
+  "repository": "https://github.com/xFoundry/outline",
   "keywords": ["wiki", "team", "node", "markdown", "slack"],
   "success_url": "/",
   "formation": {
