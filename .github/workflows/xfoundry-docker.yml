@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - xfoundry-branding
-      - main
     tags:
       - "xf-v*"
   workflow_dispatch:
