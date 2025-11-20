@@ -590,6 +590,12 @@ function SuggestionsMenu<T extends MenuItem>(props: Props<T>) {
           <>
             {insertItem ? (
               <LinkInputWrapper>
+                {insertItem.title === "LinkedIn" && (
+                  <Warning>
+                    Note: LinkedIn embeds only support post URLs (with -activity-
+                    or -ugcPost-). Profile URLs are not supported.
+                  </Warning>
+                )}
                 <LinkInput
                   type="text"
                   placeholder={
@@ -699,6 +705,16 @@ function SuggestionsMenu<T extends MenuItem>(props: Props<T>) {
 
 const LinkInputWrapper = styled.div`
   margin: 8px;
+`;
+
+const Warning = styled.div`
+  background: ${s("noticeInfoBackground")};
+  color: ${s("noticeInfoText")};
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1.4;
 `;
 
 const LinkInput = styled(Input)`
