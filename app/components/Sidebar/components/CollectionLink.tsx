@@ -1,6 +1,6 @@
 import { Location } from "history";
 import { observer } from "mobx-react";
-import { PlusIcon } from "outline-icons";
+import { GlobeIcon, PlusIcon } from "outline-icons";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { mergeRefs } from "react-merge-refs";
@@ -15,6 +15,7 @@ import Fade from "~/components/Fade";
 import CollectionIcon from "~/components/Icons/CollectionIcon";
 import NudeButton from "~/components/NudeButton";
 import useBoolean from "~/hooks/useBoolean";
+import useCurrentTeam from "~/hooks/useCurrentTeam";
 import useCurrentUser from "~/hooks/useCurrentUser";
 import usePolicy from "~/hooks/usePolicy";
 import useStores from "~/hooks/useStores";
@@ -54,6 +55,7 @@ const CollectionLink: React.FC<Props> = ({
   const { t } = useTranslation();
   const sidebarContext = useSidebarContext();
   const user = useCurrentUser();
+  const team = useCurrentTeam();
   const editableTitleRef = React.useRef<RefHandle>(null);
 
   const handleTitleChange = React.useCallback(
@@ -160,6 +162,18 @@ const CollectionLink: React.FC<Props> = ({
               !isEditing &&
               !isDraggingAnyCollection && (
                 <Fade>
+                  {team.sharing && collection.sharing && (
+                    <NudeButton
+                      tooltip={{
+                        content: t("Public sharing enabled"),
+                        delay: 500,
+                      }}
+                      aria-label={t("Public sharing enabled")}
+                      onClick={(ev) => ev.preventDefault()}
+                    >
+                      <GlobeIcon />
+                    </NudeButton>
+                  )}
                   {can.createDocument && (
                     <NudeButton
                       tooltip={{ content: t("New doc"), delay: 500 }}
