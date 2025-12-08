@@ -17,6 +17,7 @@ import Input, { NativeInput } from "~/components/Input";
 import Switch from "~/components/Switch";
 import env from "~/env";
 import usePolicy from "~/hooks/usePolicy";
+import useStores from "~/hooks/useStores";
 import { AvatarSize } from "../../Avatar";
 import CopyToClipboard from "../../CopyToClipboard";
 import NudeButton from "../../NudeButton";
@@ -24,28 +25,37 @@ import { ResizingHeightContainer } from "../../ResizingHeightContainer";
 import Text from "../../Text";
 import Tooltip from "../../Tooltip";
 import { ListItem } from "../components/ListItem";
+import NestedDocsList from "./NestedDocsList";
 
 type Props = {
   /** The document to share. */
   document: Document;
   /** The existing share model, if any. */
   share: Share | null | undefined;
-  /** The existing share parent model, if any. */
-  sharedParent: Share | null | undefined;
+  /** All parent shares that include this document. */
+  sharedParents: Share[];
   /** Ref to the Copy Link button */
   copyButtonRef?: React.RefObject<HTMLButtonElement>;
   onRequestClose?: () => void;
 };
 
-function PublicAccess({ document, share, sharedParent }: Props) {
+const MAX_VISIBLE_PARENTS = 3;
+
+function PublicAccess({ document, share, sharedParents }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const { collections } = useStores();
   const [validationError, setValidationError] = React.useState("");
   const [urlId, setUrlId] = React.useState(share?.urlId);
+  const [parentsExpanded, setParentsExpanded] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const can = usePolicy(share);
   const documentAbilities = usePolicy(document);
   const canPublish = can.update && documentAbilities.share;
+
+  // Filter to only published parent shares
+  const publishedParents = sharedParents.filter((s) => s.published);
+  const hasParentShares = publishedParents.length > 0 && !document.isDraft;
 
   React.useEffect(() => {
     setUrlId(share?.urlId);
@@ -139,16 +149,11 @@ function PublicAccess({ document, share, sharedParent }: Props) {
   }, [t]);
 
   const handleParentCopied = React.useCallback(() => {
-    toast.success(t("Parent share link copied to clipboard"));
+    toast.success(t("Link copied to clipboard"));
   }, [t]);
 
   // Direct share URL for this specific document
   const directShareUrl = share?.url ?? "";
-
-  // Parent share URL (parent's share link + this document's path)
-  const parentShareUrl = sharedParent?.url
-    ? `${sharedParent.url}${document.url}`
-    : "";
 
   const copyButton = (
     <Tooltip content={t("Copy public link")} placement="top">
@@ -160,15 +165,25 @@ function PublicAccess({ document, share, sharedParent }: Props) {
     </Tooltip>
   );
 
-  const parentCopyButton = (
-    <Tooltip content={t("Copy parent share link")} placement="top">
-      <CopyToClipboard text={parentShareUrl} onCopy={handleParentCopied}>
-        <NudeButton type="button" style={{ marginRight: 3 }}>
-          <CopyIcon color={theme.placeholder} size={18} />
-        </NudeButton>
-      </CopyToClipboard>
-    </Tooltip>
-  );
+  // Get parent share URL (parent's share link + this document's path)
+  const getParentShareUrl = (parentShare: Share) =>
+    parentShare.url ? `${parentShare.url}${document.url}` : "";
+
+  // Get nested documents count for this share
+  const collection = document.collectionId
+    ? collections.get(document.collectionId)
+    : null;
+  const docTree = collection?.getDocumentTree(document.id);
+  const hasNestedDocs =
+    share?.published &&
+    share.includeChildDocuments &&
+    docTree?.children &&
+    docTree.children.length > 0;
+
+  const visibleParents = parentsExpanded
+    ? publishedParents
+    : publishedParents.slice(0, MAX_VISIBLE_PARENTS);
+  const hiddenParentsCount = publishedParents.length - MAX_VISIBLE_PARENTS;
 
   return (
     <Wrapper>
@@ -304,39 +319,73 @@ function PublicAccess({ document, share, sharedParent }: Props) {
         ) : null}
       </ResizingHeightContainer>
 
-      {sharedParent?.published && !document.isDraft && (
-        <ParentShareSection>
-          <ListItem
-            title={t("Also shared via parent")}
-            subtitle={
-              sharedParent.collectionId ? (
-                <Trans>
-                  Accessible because the collection{" "}
-                  <StyledLink to={`/collection/${sharedParent.collectionId}`}>
-                    {sharedParent.sourceTitle}
-                  </StyledLink>{" "}
-                  is shared
-                </Trans>
-              ) : (
-                <Trans>
-                  Accessible because{" "}
-                  <StyledLink to={`/doc/${sharedParent.documentId}`}>
-                    {sharedParent.sourceTitle}
-                  </StyledLink>{" "}
-                  is shared
-                </Trans>
-              )
-            }
-            image={
-              <Squircle color={theme.textTertiary} size={AvatarSize.Medium}>
-                <InfoIcon color={theme.background} size={18} />
-              </Squircle>
-            }
+      {/* Nested documents section */}
+      {hasNestedDocs && (
+        <NestedDocsSection>
+          <SectionHeader>
+            <Text type="secondary" weight="medium" size="small">
+              {t("Includes nested documents")}
+            </Text>
+          </SectionHeader>
+          <NestedDocsList
+            documentId={document.id}
+            collectionId={document.collectionId}
+            maxVisible={5}
           />
-          <ShareLinkInput type="text" disabled defaultValue={parentShareUrl}>
-            {parentCopyButton}
-          </ShareLinkInput>
-        </ParentShareSection>
+        </NestedDocsSection>
+      )}
+
+      {/* Parent shares section */}
+      {hasParentShares && (
+        <ParentSharesSection>
+          <SectionHeader>
+            <Squircle color={theme.textTertiary} size={AvatarSize.Small}>
+              <InfoIcon color={theme.background} size={14} />
+            </Squircle>
+            <Text type="secondary" weight="medium" size="small">
+              {t("Also accessible via")}
+            </Text>
+          </SectionHeader>
+
+          {visibleParents.map((parentShare) => (
+            <ParentShareItem key={parentShare.id}>
+              <ParentShareInfo>
+                {parentShare.collectionId ? (
+                  <Trans>
+                    Collection{" "}
+                    <StyledLink
+                      to={`/collection/${parentShare.collectionId}`}
+                    >
+                      {parentShare.sourceTitle}
+                    </StyledLink>
+                  </Trans>
+                ) : (
+                  <StyledLink to={`/doc/${parentShare.documentId}`}>
+                    {parentShare.sourceTitle}
+                  </StyledLink>
+                )}
+              </ParentShareInfo>
+              <Tooltip content={t("Copy link")} placement="top">
+                <CopyToClipboard
+                  text={getParentShareUrl(parentShare)}
+                  onCopy={handleParentCopied}
+                >
+                  <CopyButton>
+                    <CopyIcon color={theme.textTertiary} size={16} />
+                  </CopyButton>
+                </CopyToClipboard>
+              </Tooltip>
+            </ParentShareItem>
+          ))}
+
+          {hiddenParentsCount > 0 && (
+            <ExpandButton onClick={() => setParentsExpanded(!parentsExpanded)}>
+              {parentsExpanded
+                ? t("Show less")
+                : t("Show {{ count }} more", { count: hiddenParentsCount })}
+            </ExpandButton>
+          )}
+        </ParentSharesSection>
       )}
     </Wrapper>
   );
@@ -351,11 +400,71 @@ const Wrapper = styled.div`
   padding-bottom: 8px;
 `;
 
-const ParentShareSection = styled.div`
+const SectionHeader = styled(Flex)`
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+`;
+
+const NestedDocsSection = styled.div`
   margin-top: 16px;
-  padding: 12px;
+  padding: 12px 16px;
   background: ${s("backgroundSecondary")};
   border-radius: 8px;
+`;
+
+const ParentSharesSection = styled.div`
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: ${s("backgroundSecondary")};
+  border-radius: 8px;
+`;
+
+const ParentShareItem = styled(Flex)`
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  gap: 8px;
+
+  &:not(:last-child) {
+    border-bottom: 1px solid ${s("divider")};
+  }
+`;
+
+const ParentShareInfo = styled(Text).attrs({ size: "small" })`
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const CopyButton = styled(NudeButton)`
+  flex-shrink: 0;
+  padding: 4px;
+  border-radius: 4px;
+
+  &:hover {
+    background: ${s("backgroundTertiary")};
+  }
+`;
+
+const ExpandButton = styled.button`
+  display: block;
+  width: 100%;
+  padding: 8px 0 0 0;
+  margin-top: 4px;
+  background: none;
+  border: none;
+  color: ${s("textSecondary")};
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+
+  &:hover {
+    color: ${s("text")};
+    text-decoration: underline;
+  }
 `;
 
 const DomainPrefix = styled.span`

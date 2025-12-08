@@ -37,8 +37,8 @@ type Props = {
   invitedInSession: string[];
   /** The existing share model, if any. */
   share: Share | null | undefined;
-  /** The existing share parent model, if any. */
-  sharedParent: Share | null | undefined;
+  /** All parent shares that include this document. */
+  sharedParents: Share[];
   /** Callback fired when the popover requests to be closed. */
   onRequestClose: () => void;
   /** Whether the popover is visible. */
@@ -50,7 +50,7 @@ export const AccessControlList = observer(
     document,
     invitedInSession,
     share,
-    sharedParent,
+    sharedParents,
     onRequestClose,
     visible,
   }: Props) => {
@@ -206,7 +206,7 @@ export const AccessControlList = observer(
             <PublicAccess
               document={document}
               share={share}
-              sharedParent={sharedParent}
+              sharedParents={sharedParents}
               onRequestClose={onRequestClose}
             />
           </Sticky>

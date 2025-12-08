@@ -169,10 +169,10 @@ export async function loadShareWithParent({
     authorize(user, "read", share.collection);
   }
 
-  let parentShare: Share | null = null;
+  let parentShares: Share[] = [];
 
-  // Load the parent shares and return one (needed for share toggle in UI).
-  // Parent share is needed for documents only since collections don't have parents.
+  // Load all parent shares (needed for share toggle in UI).
+  // Parent shares are needed for documents only since collections don't have parents.
   if (documentId) {
     authorize(user, "read", share.document);
 
@@ -188,6 +188,7 @@ export async function loadShareWithParent({
       rejectOnEmpty: true,
     });
 
+    // Check for collection-level share first
     const collectionShare = await Share.scope({
       method: ["withCollectionPermissions", user.id],
     }).findOne({
@@ -201,33 +202,37 @@ export async function loadShareWithParent({
       },
     });
 
-    // prefer collection share if it exists and user has read access.
     if (collectionShare && can(user, "read", collectionShare)) {
-      parentShare = collectionShare;
-    } else {
-      const parentDocIds = docCollection.getDocumentParents(documentId);
+      parentShares.push(collectionShare);
+    }
 
-      const allParentShares = parentDocIds
-        ? await Share.scope({
-            method: ["withCollectionPermissions", user.id],
-          }).findAll({
-            where: {
-              revokedAt: {
-                [Op.is]: null,
-              },
-              published: true,
-              teamId: user.teamId,
-              includeChildDocuments: true,
-              documentId: parentDocIds,
-            },
-          })
-        : null;
+    // Then check for all parent document shares
+    const parentDocIds = docCollection.getDocumentParents(documentId);
 
-      parentShare = allParentShares?.find((s) => can(user, "read", s)) ?? null;
+    if (parentDocIds && parentDocIds.length > 0) {
+      const allParentDocShares = await Share.scope({
+        method: ["withCollectionPermissions", user.id],
+      }).findAll({
+        where: {
+          revokedAt: {
+            [Op.is]: null,
+          },
+          published: true,
+          teamId: user.teamId,
+          includeChildDocuments: true,
+          documentId: parentDocIds,
+        },
+      });
+
+      // Add all parent document shares that user can read
+      const readableParentShares = allParentDocShares.filter((s) =>
+        can(user, "read", s)
+      );
+      parentShares.push(...readableParentShares);
     }
   }
 
-  return { share, parentShare };
+  return { share, parentShares };
 }
 
 function getAllIdsInSharedTree(sharedTree: NavigationNode | null): string[] {
