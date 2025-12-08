@@ -348,6 +348,35 @@ export default class Collection extends ParanoidModel {
     return result;
   }
 
+  /**
+   * Returns the navigation node for a document including its children.
+   *
+   * @param documentId The id of the document to find.
+   * @returns The navigation node for the document, or undefined if not found.
+   */
+  getDocumentTree(documentId: string): NavigationNode | undefined {
+    let result: NavigationNode | undefined;
+
+    const travelNodes = (nodes: NavigationNode[]) => {
+      for (const node of nodes) {
+        if (node.id === documentId) {
+          result = node;
+          return;
+        }
+        travelNodes(node.children);
+        if (result) {
+          return;
+        }
+      }
+    };
+
+    if (this.sortedDocuments) {
+      travelNodes(this.sortedDocuments);
+    }
+
+    return result;
+  }
+
   @computed
   get asNavigationNode(): NavigationNode {
     return {

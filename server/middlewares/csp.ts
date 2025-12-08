@@ -21,8 +21,8 @@ export default function createCSPMiddleware() {
 
   // Allow to load assets from Vite
   if (!env.isProduction) {
-    scriptSrc.push(env.URL.replace(`:${env.PORT}`, ":3001"));
-    scriptSrc.push("localhost:3001");
+    scriptSrc.push(env.URL.replace(`:${env.PORT}`, ":3002"));
+    scriptSrc.push("localhost:3002");
   } else {
     scriptSrc.push(env.URL);
   }

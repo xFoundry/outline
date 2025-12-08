@@ -18,7 +18,7 @@ import { loadPublicShare } from "@server/commands/shareLoader";
 
 const readFile = util.promisify(fs.readFile);
 const entry = "app/index.tsx";
-const viteHost = env.URL.replace(`:${env.PORT}`, ":3001");
+const viteHost = env.URL.replace(`:${env.PORT}`, ":3002");
 
 let indexHtmlCache: Buffer | undefined;
 
@@ -195,7 +195,8 @@ export const renderShare = async (ctx: Context, next: Next) => {
   }
 
   // Allow shares to be embedded in iframes on other websites unless prevented by team preference
-  const preventEmbedding = team?.getPreference(TeamPreference.PreventDocumentEmbedding) ?? false;
+  const preventEmbedding =
+    team?.getPreference(TeamPreference.PreventDocumentEmbedding) ?? false;
   if (!preventEmbedding) {
     ctx.remove("X-Frame-Options");
   }
