@@ -324,3 +324,9 @@ Logs are JSON in production, human-readable in development.
 - Use presenters for all API responses
 - Always use policies for authorization checks
 - Commands should be used for complex operations across multiple models
+- Before running git commits in a new terminal,
+  you need to run:
+  eval "$(fnm env)" && fnm use 22
+
+  To push and trigger Railway deployment:
+  git push
