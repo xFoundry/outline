@@ -138,14 +138,32 @@ function PublicAccess({ document, share, sharedParent }: Props) {
     toast.success(t("Public link copied to clipboard"));
   }, [t]);
 
-  const shareUrl = sharedParent?.url
+  const handleParentCopied = React.useCallback(() => {
+    toast.success(t("Parent share link copied to clipboard"));
+  }, [t]);
+
+  // Direct share URL for this specific document
+  const directShareUrl = share?.url ?? "";
+
+  // Parent share URL (parent's share link + this document's path)
+  const parentShareUrl = sharedParent?.url
     ? `${sharedParent.url}${document.url}`
-    : (share?.url ?? "");
+    : "";
 
   const copyButton = (
     <Tooltip content={t("Copy public link")} placement="top">
-      <CopyToClipboard text={shareUrl} onCopy={handleCopied}>
+      <CopyToClipboard text={directShareUrl} onCopy={handleCopied}>
         <NudeButton type="button" disabled={!share} style={{ marginRight: 3 }}>
+          <CopyIcon color={theme.placeholder} size={18} />
+        </NudeButton>
+      </CopyToClipboard>
+    </Tooltip>
+  );
+
+  const parentCopyButton = (
+    <Tooltip content={t("Copy parent share link")} placement="top">
+      <CopyToClipboard text={parentShareUrl} onCopy={handleParentCopied}>
+        <NudeButton type="button" style={{ marginRight: 3 }}>
           <CopyIcon color={theme.placeholder} size={18} />
         </NudeButton>
       </CopyToClipboard>
@@ -156,53 +174,26 @@ function PublicAccess({ document, share, sharedParent }: Props) {
     <Wrapper>
       <ListItem
         title={t("Web")}
-        subtitle={
-          <>
-            {sharedParent && !document.isDraft ? (
-              sharedParent.collectionId ? (
-                <Trans>
-                  Anyone with the link can access because the containing
-                  collection,{" "}
-                  <StyledLink to={`/collection/${sharedParent.collectionId}`}>
-                    {sharedParent.sourceTitle}
-                  </StyledLink>
-                  , is shared
-                </Trans>
-              ) : (
-                <Trans>
-                  Anyone with the link can access because the parent document,{" "}
-                  <StyledLink to={`/doc/${sharedParent.documentId}`}>
-                    {sharedParent.sourceTitle}
-                  </StyledLink>
-                  , is shared
-                </Trans>
-              )
-            ) : (
-              t("Allow anyone with the link to access")
-            )}
-          </>
-        }
+        subtitle={t("Allow anyone with the link to access")}
         image={
           <Squircle color={theme.text} size={AvatarSize.Medium}>
             <GlobeIcon color={theme.background} size={18} />
           </Squircle>
         }
         actions={
-          sharedParent && !document.isDraft ? null : (
-            <Switch
-              aria-label={t("Publish to internet")}
-              checked={share?.published ?? false}
-              onChange={handlePublishedChange}
-              disabled={!canPublish}
-              width={26}
-              height={14}
-            />
-          )
+          <Switch
+            aria-label={t("Publish to internet")}
+            checked={share?.published ?? false}
+            onChange={handlePublishedChange}
+            disabled={!canPublish}
+            width={26}
+            height={14}
+          />
         }
       />
 
       <ResizingHeightContainer>
-        {share?.published && !sharedParent?.published && (
+        {share?.published && (
           <>
             <ListItem
               title={
@@ -282,11 +273,7 @@ function PublicAccess({ document, share, sharedParent }: Props) {
           </>
         )}
 
-        {sharedParent?.published ? (
-          <ShareLinkInput type="text" disabled defaultValue={shareUrl}>
-            {copyButton}
-          </ShareLinkInput>
-        ) : share?.published ? (
+        {share?.published ? (
           <ShareLinkInput
             type="text"
             ref={inputRef}
@@ -316,6 +303,41 @@ function PublicAccess({ document, share, sharedParent }: Props) {
           </Text>
         ) : null}
       </ResizingHeightContainer>
+
+      {sharedParent?.published && !document.isDraft && (
+        <ParentShareSection>
+          <ListItem
+            title={t("Also shared via parent")}
+            subtitle={
+              sharedParent.collectionId ? (
+                <Trans>
+                  Accessible because the collection{" "}
+                  <StyledLink to={`/collection/${sharedParent.collectionId}`}>
+                    {sharedParent.sourceTitle}
+                  </StyledLink>{" "}
+                  is shared
+                </Trans>
+              ) : (
+                <Trans>
+                  Accessible because{" "}
+                  <StyledLink to={`/doc/${sharedParent.documentId}`}>
+                    {sharedParent.sourceTitle}
+                  </StyledLink>{" "}
+                  is shared
+                </Trans>
+              )
+            }
+            image={
+              <Squircle color={theme.textTertiary} size={AvatarSize.Medium}>
+                <InfoIcon color={theme.background} size={18} />
+              </Squircle>
+            }
+          />
+          <ShareLinkInput type="text" disabled defaultValue={parentShareUrl}>
+            {parentCopyButton}
+          </ShareLinkInput>
+        </ParentShareSection>
+      )}
     </Wrapper>
   );
 }
@@ -327,6 +349,13 @@ const StyledInfoIcon = styled(InfoIcon)`
 
 const Wrapper = styled.div`
   padding-bottom: 8px;
+`;
+
+const ParentShareSection = styled.div`
+  margin-top: 16px;
+  padding: 12px;
+  background: ${s("backgroundSecondary")};
+  border-radius: 8px;
 `;
 
 const DomainPrefix = styled.span`
