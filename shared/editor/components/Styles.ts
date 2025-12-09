@@ -602,6 +602,14 @@ iframe.embed {
   margin-left: 2em;
   margin-bottom: 1em;
   clear: initial;
+
+  @media (max-width: 736px) {
+    float: none;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 1em;
+    max-width: 100%;
+  }
 }
 
 .image-left-50 {
@@ -609,6 +617,14 @@ iframe.embed {
   margin-right: 2em;
   margin-bottom: 1em;
   clear: initial;
+
+  @media (max-width: 736px) {
+    float: none;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 1em;
+    max-width: 100%;
+  }
 }
 
 .image-full-width {
