@@ -605,10 +605,10 @@ iframe.embed {
 
   @media (max-width: 736px) {
     float: none;
-    margin-left: auto;
-    margin-right: auto;
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
     margin-top: 1em;
-    max-width: 100%;
   }
 }
 
@@ -620,10 +620,10 @@ iframe.embed {
 
   @media (max-width: 736px) {
     float: none;
-    margin-left: auto;
-    margin-right: auto;
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
     margin-top: 1em;
-    max-width: 100%;
   }
 }
 
