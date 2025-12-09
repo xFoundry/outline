@@ -5,7 +5,7 @@ import { mergeRefs } from "react-merge-refs";
 import { useRouteMatch } from "react-router-dom";
 import styled from "styled-components";
 import Text from "@shared/components/Text";
-import { richExtensions, withComments } from "@shared/editor/nodes";
+import { richExtensions, withComments, withAI } from "@shared/editor/nodes";
 import { TeamPreference } from "@shared/types";
 import { colorPalette } from "@shared/utils/collections";
 import Comment from "~/models/Comment";
@@ -34,7 +34,7 @@ import DocumentMeta from "./DocumentMeta";
 import DocumentTitle from "./DocumentTitle";
 import first from "lodash/first";
 
-const extensions = withUIExtensions(withComments(richExtensions));
+const extensions = withUIExtensions(withAI(withComments(richExtensions)));
 
 type Props = Omit<EditorProps, "editorStyle"> & {
   onChangeTitle: (title: string) => void;

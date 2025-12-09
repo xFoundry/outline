@@ -2,6 +2,8 @@
 export * from "./cancan";
 
 // Import all policies
+import "./aiConfig";
+import "./aiConversation";
 import "./apiKey";
 import "./attachment";
 import "./authenticationProvider";

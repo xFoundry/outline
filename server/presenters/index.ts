@@ -1,3 +1,5 @@
+import presentAIConfig from "./aiConfig";
+import presentAIConversation from "./aiConversation";
 import presentApiKey from "./apiKey";
 import presentAttachment from "./attachment";
 import presentAuthenticationProvider from "./authenticationProvider";
@@ -30,6 +32,8 @@ import presentUser from "./user";
 import presentView from "./view";
 
 export {
+  presentAIConfig,
+  presentAIConversation,
   presentApiKey,
   presentAttachment,
   presentAuthenticationProvider,

@@ -303,6 +303,12 @@ export enum TeamPreference {
   TocPosition = "tocPosition",
   /** Whether to prevent shared documents from being embedded in iframes on external websites. */
   PreventDocumentEmbedding = "preventDocumentEmbedding",
+  /** Whether AI features are enabled for the team. */
+  AIEnabled = "aiEnabled",
+  /** Whether AI chat is enabled for the team. */
+  AIChatEnabled = "aiChatEnabled",
+  /** Whether AI editing features are enabled for the team. */
+  AIEditingEnabled = "aiEditingEnabled",
 }
 
 export type TeamPreferences = {
@@ -317,6 +323,9 @@ export type TeamPreferences = {
   [TeamPreference.CustomTheme]?: Partial<CustomTheme>;
   [TeamPreference.TocPosition]?: TOCPosition;
   [TeamPreference.PreventDocumentEmbedding]?: boolean;
+  [TeamPreference.AIEnabled]?: boolean;
+  [TeamPreference.AIChatEnabled]?: boolean;
+  [TeamPreference.AIEditingEnabled]?: boolean;
 };
 
 export enum NavigationNodeType {
@@ -598,4 +607,121 @@ export type EmojiVariants = {
 export type ReactionSummary = {
   emoji: string;
   userIds: string[];
+};
+
+// AI Integration Types
+
+/** Available AI providers. */
+export enum AIProvider {
+  OpenRouter = "openrouter",
+  OpenAI = "openai",
+}
+
+/** AI feature flags that can be enabled/disabled. */
+export enum AIFeature {
+  Chat = "chat",
+  Editing = "editing",
+  Generation = "generation",
+}
+
+/** AI conversation types. */
+export enum AIConversationType {
+  Chat = "chat",
+  Edit = "edit",
+  Generate = "generate",
+}
+
+/** AI message roles. */
+export enum AIMessageRole {
+  User = "user",
+  Assistant = "assistant",
+  System = "system",
+  Tool = "tool",
+}
+
+/** AI operation types for editor. */
+export enum AIOperationType {
+  Rephrase = "rephrase",
+  Expand = "expand",
+  Simplify = "simplify",
+  FixGrammar = "fix-grammar",
+  Translate = "translate",
+  Continue = "continue",
+  Summarize = "summarize",
+  Custom = "custom",
+}
+
+/** AI tool call status. */
+export enum AIToolCallStatus {
+  Pending = "pending",
+  Running = "running",
+  Completed = "completed",
+  Error = "error",
+}
+
+/** AI provider configuration. */
+export type AIProviderConfig = {
+  apiKey?: string;
+  enabled: boolean;
+};
+
+/** AI permissions configuration. */
+export type AIPermissions = {
+  enabledFor: "all" | "admins" | "groups";
+  groupIds?: string[];
+  features: {
+    [AIFeature.Chat]: boolean;
+    [AIFeature.Editing]: boolean;
+    [AIFeature.Generation]: boolean;
+  };
+};
+
+/** AI rate limits configuration. */
+export type AIRateLimits = {
+  requestsPerMinute: number;
+  tokensPerDay: number;
+  tokensPerMonth: number;
+};
+
+/** AI tool call. */
+export type AIToolCall = {
+  id: string;
+  name: string;
+  arguments: JSONObject;
+  result?: JSONValue;
+  status: AIToolCallStatus;
+};
+
+/** AI citation reference. */
+export type AICitation = {
+  documentId: string;
+  title: string;
+  excerpt?: string;
+  url: string;
+};
+
+/** AI message attachment. */
+export type AIAttachment = {
+  id: string;
+  name: string;
+  type: string;
+  url: string;
+  size: number;
+};
+
+/** AI message structure. */
+export type AIMessageData = {
+  role: AIMessageRole;
+  content: string;
+  toolCalls?: AIToolCall[];
+  citations?: AICitation[];
+  attachments?: AIAttachment[];
+  createdAt: string;
+};
+
+/** AI conversation metadata. */
+export type AIConversationMetadata = {
+  model: string;
+  provider: AIProvider;
+  totalTokens: number;
 };

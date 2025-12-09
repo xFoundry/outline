@@ -1,3 +1,5 @@
+const isSSLDisabled = process.env.PGSSLMODE === "disable";
+
 const shared = {
   use_env_variable: process.env.DATABASE_URL ? "DATABASE_URL" : undefined,
   dialect: "postgres",
@@ -14,10 +16,12 @@ module.exports = {
   "production-ssl-disabled": shared,
   production: {
     ...shared,
-    dialectOptions: {
-      ssl: {
-        rejectUnauthorized: false,
-      },
-    },
+    dialectOptions: isSSLDisabled
+      ? {}
+      : {
+          ssl: {
+            rejectUnauthorized: false,
+          },
+        },
   },
 };

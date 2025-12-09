@@ -19,6 +19,7 @@ import {
   Heading3Icon,
   TableMergeCellsIcon,
   TableSplitCellsIcon,
+  SparklesIcon,
 } from "outline-icons";
 import { EditorState } from "prosemirror-state";
 import styled from "styled-components";
@@ -284,6 +285,42 @@ export default function formattingMenuItems(
       tooltip: dictionary.copy,
       shortcut: `${metaDisplay}+C`,
       visible: isCode && !isCodeBlock && (!isMobile || !isEmpty),
+    },
+    {
+      name: "separator",
+      visible: !isCodeBlock && !isEmpty,
+    },
+    {
+      tooltip: dictionary.ai || "AI",
+      icon: <SparklesIcon />,
+      visible: !isCodeBlock && !isEmpty,
+      children: [
+        {
+          name: "aiRephrase",
+          label: dictionary.aiRephrase || "Rephrase",
+          icon: <SparklesIcon />,
+        },
+        {
+          name: "aiExpand",
+          label: dictionary.aiExpand || "Expand",
+          icon: <SparklesIcon />,
+        },
+        {
+          name: "aiSimplify",
+          label: dictionary.aiSimplify || "Simplify",
+          icon: <SparklesIcon />,
+        },
+        {
+          name: "aiFixGrammar",
+          label: dictionary.aiFixGrammar || "Fix grammar",
+          icon: <SparklesIcon />,
+        },
+        {
+          name: "aiSummarize",
+          label: dictionary.aiSummarize || "Summarize",
+          icon: <SparklesIcon />,
+        },
+      ],
     },
   ];
 }

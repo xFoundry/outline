@@ -13,6 +13,7 @@ import usePolicy from "~/hooks/usePolicy";
 import lazy from "~/utils/lazyWithRetry";
 import {
   archivePath,
+  chatPath,
   draftsPath,
   homePath,
   searchPath,
@@ -23,6 +24,7 @@ import {
 
 const SettingsRoutes = lazy(() => import("./settings"));
 const Archive = lazy(() => import("~/scenes/Archive"));
+const Chat = lazy(() => import("~/scenes/Chat"));
 const Collection = lazy(() => import("~/scenes/Collection"));
 const Document = lazy(() => import("~/scenes/Document"));
 const Drafts = lazy(() => import("~/scenes/Drafts"));
@@ -71,6 +73,7 @@ function AuthenticatedRoutes() {
               {can.createDocument && (
                 <Route exact path={trashPath()} component={Trash} />
               )}
+              <Route path={`${chatPath()}/:conversationId?`} component={Chat} />
               <Route path={`${homePath()}/:tab?`} component={Home} />
               <Redirect from="/dashboard" to={homePath()} />
               <Redirect exact from="/starred" to={homePath()} />

@@ -110,6 +110,15 @@ export default function useDictionary() {
       none: t("None"),
       deleteEmbed: t("Delete embed"),
       uploadImage: t("Upload an image"),
+      // AI commands
+      ai: t("AI"),
+      aiRephrase: t("Rephrase"),
+      aiExpand: t("Expand"),
+      aiSimplify: t("Simplify"),
+      aiFixGrammar: t("Fix grammar"),
+      aiSummarize: t("Summarize"),
+      aiTranslate: t("Translate"),
+      aiCustomPrompt: t("Custom prompt"),
     }),
     [t]
   );

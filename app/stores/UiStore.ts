@@ -27,6 +27,7 @@ type PersistedData = Pick<
   UiStore,
   | "languagePromptDismissed"
   | "commentsExpanded"
+  | "chatSidebarExpanded"
   | "theme"
   | "sidebarWidth"
   | "sidebarRightWidth"
@@ -78,6 +79,9 @@ class UiStore {
   commentsExpanded = false;
 
   @observable
+  chatSidebarExpanded = false;
+
+  @observable
   sidebarIsResizing = false;
 
   @observable
@@ -103,6 +107,7 @@ class UiStore {
       data.sidebarRightWidth || defaultTheme.sidebarRightWidth;
     this.tocVisible = data.tocVisible;
     this.commentsExpanded = !!data.commentsExpanded;
+    this.chatSidebarExpanded = !!data.chatSidebarExpanded;
     this.theme = data.theme || Theme.System;
 
     // system theme listeners
@@ -226,6 +231,11 @@ class UiStore {
   };
 
   @action
+  toggleChatSidebar = () => {
+    this.set({ chatSidebarExpanded: !this.chatSidebarExpanded });
+  };
+
+  @action
   toggleCollapsedSidebar = () => {
     sidebarHidden = false;
     this.set({ sidebarCollapsed: !this.sidebarCollapsed });
@@ -292,6 +302,7 @@ class UiStore {
       sidebarRightWidth: this.sidebarRightWidth,
       languagePromptDismissed: this.languagePromptDismissed,
       commentsExpanded: this.commentsExpanded,
+      chatSidebarExpanded: this.chatSidebarExpanded,
       theme: this.theme,
     };
   }

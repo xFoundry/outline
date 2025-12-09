@@ -1,3 +1,4 @@
+import AIEditor from "../extensions/AIEditor";
 import DateTime from "../extensions/DateTime";
 import History from "../extensions/History";
 import MaxLength from "../extensions/MaxLength";
@@ -120,3 +121,8 @@ export const withComments = (nodes: Nodes) => [
   Mention,
   Comment,
 ];
+
+/**
+ * Add AI editor capabilities to a set of nodes
+ */
+export const withAI = (nodes: Nodes) => [...nodes, AIEditor];

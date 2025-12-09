@@ -27,6 +27,10 @@ export function trashPath(): string {
   return "/trash";
 }
 
+export function chatPath(conversationId?: string): string {
+  return conversationId ? `/chat/${conversationId}` : "/chat";
+}
+
 export function settingsPath(...args: string[]): string {
   return "/settings" + (args.length > 0 ? `/${args.join("/")}` : "");
 }

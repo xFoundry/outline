@@ -31,6 +31,9 @@ import Fade from "./Fade";
 import { PortalContext } from "./Portal";
 import CommandBar from "./CommandBar";
 
+const ChatSidebar = lazyWithRetry(
+  () => import("~/components/Chat/ChatSidebar")
+);
 const DocumentComments = lazyWithRetry(
   () => import("~/scenes/Document/components/Comments")
 );
@@ -101,19 +104,30 @@ const AuthenticatedLayout: React.FC = ({ children }: Props) => {
     ui.activeDocumentId &&
     ui.commentsExpanded &&
     !!team.getPreference(TeamPreference.Commenting);
+  const showChat =
+    !showHistory &&
+    !showComments &&
+    ui.chatSidebarExpanded;
 
   const sidebarRight = (
     <AnimatePresence
       initial={false}
       key={ui.activeDocumentId ? "active" : "inactive"}
     >
-      {(showHistory || showComments) && (
-        <Route path={`/doc/${slug}`}>
-          <React.Suspense fallback={null}>
-            {showHistory && <DocumentHistory />}
-            {showComments && <DocumentComments />}
-          </React.Suspense>
-        </Route>
+      {(showHistory || showComments || showChat) && (
+        <React.Suspense fallback={null}>
+          {showHistory && (
+            <Route path={`/doc/${slug}`}>
+              <DocumentHistory />
+            </Route>
+          )}
+          {showComments && (
+            <Route path={`/doc/${slug}`}>
+              <DocumentComments />
+            </Route>
+          )}
+          {showChat && <ChatSidebar />}
+        </React.Suspense>
       )}
     </AnimatePresence>
   );

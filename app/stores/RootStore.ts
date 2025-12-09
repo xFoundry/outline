@@ -1,6 +1,7 @@
 import invariant from "invariant";
 import lowerFirst from "lodash/lowerFirst";
 import pluralize from "pluralize";
+import AIConversationsStore from "./AIConversationsStore";
 import ApiKeysStore from "./ApiKeysStore";
 import AuthStore from "./AuthStore";
 import AuthenticationProvidersStore from "./AuthenticationProvidersStore";
@@ -36,6 +37,7 @@ import WebhookSubscriptionsStore from "./WebhookSubscriptionStore";
 import Store from "./base/Store";
 
 export default class RootStore {
+  aiConversations: AIConversationsStore;
   apiKeys: ApiKeysStore;
   auth: AuthStore;
   authenticationProviders: AuthenticationProvidersStore;
@@ -71,6 +73,7 @@ export default class RootStore {
 
   constructor() {
     // Models
+    this.registerStore(AIConversationsStore, "aiConversations");
     this.registerStore(ApiKeysStore);
     this.registerStore(AuthenticationProvidersStore);
     this.registerStore(CollectionsStore);

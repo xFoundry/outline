@@ -766,6 +766,78 @@ export class Environment {
     environment.ALLOWED_PRIVATE_IP_ADDRESSES
   );
 
+  // AI Integration
+
+  /**
+   * Whether AI features are enabled globally. Can be overridden per-team.
+   */
+  @IsOptional()
+  @IsBoolean()
+  public AI_ENABLED = this.toBoolean(environment.AI_ENABLED ?? "false");
+
+  /**
+   * The default AI provider to use when not specified.
+   */
+  @IsOptional()
+  @IsIn(["openrouter", "openai"])
+  public AI_DEFAULT_PROVIDER = this.toOptionalString(
+    environment.AI_DEFAULT_PROVIDER
+  );
+
+  /**
+   * OpenRouter API key for accessing AI models via OpenRouter.
+   */
+  @IsOptional()
+  public OPENROUTER_API_KEY = this.toOptionalString(
+    environment.OPENROUTER_API_KEY
+  );
+
+  /**
+   * OpenAI API key for direct OpenAI model access.
+   */
+  @IsOptional()
+  public OPENAI_API_KEY = this.toOptionalString(environment.OPENAI_API_KEY);
+
+  /**
+   * Default AI model to use for chat operations.
+   */
+  @IsOptional()
+  public AI_DEFAULT_CHAT_MODEL = this.toOptionalString(
+    environment.AI_DEFAULT_CHAT_MODEL
+  );
+
+  /**
+   * Default AI model to use for editing operations.
+   */
+  @IsOptional()
+  public AI_DEFAULT_EDIT_MODEL = this.toOptionalString(
+    environment.AI_DEFAULT_EDIT_MODEL
+  );
+
+  /**
+   * Maximum tokens per AI request.
+   */
+  @IsOptional()
+  @IsNumber()
+  public AI_MAX_TOKENS =
+    this.toOptionalNumber(environment.AI_MAX_TOKENS) ?? 4096;
+
+  /**
+   * Default requests per minute rate limit for AI features.
+   */
+  @IsOptional()
+  @IsNumber()
+  public AI_RATE_LIMIT_REQUESTS_PER_MINUTE =
+    this.toOptionalNumber(environment.AI_RATE_LIMIT_REQUESTS_PER_MINUTE) ?? 20;
+
+  /**
+   * Default daily token limit for AI features.
+   */
+  @IsOptional()
+  @IsNumber()
+  public AI_RATE_LIMIT_TOKENS_PER_DAY =
+    this.toOptionalNumber(environment.AI_RATE_LIMIT_TOKENS_PER_DAY) ?? 100000;
+
   /**
    * The product name
    */

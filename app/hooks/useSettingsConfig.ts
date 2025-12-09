@@ -15,6 +15,7 @@ import {
   Icon,
   PlusIcon,
   InternetIcon,
+  SparklesIcon,
 } from "outline-icons";
 import { ComponentProps, useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -28,6 +29,7 @@ import useCurrentUser from "./useCurrentUser";
 import usePolicy from "./usePolicy";
 import useStores from "./useStores";
 
+const AI = lazy(() => import("~/scenes/Settings/AI"));
 const ApiKeys = lazy(() => import("~/scenes/Settings/ApiKeys"));
 const Applications = lazy(() => import("~/scenes/Settings/Applications"));
 const APIAndApps = lazy(() => import("~/scenes/Settings/APIAndApps"));
@@ -134,6 +136,15 @@ const useSettingsConfig = () => {
         enabled: can.update,
         group: t("Workspace"),
         icon: BeakerIcon,
+      },
+      {
+        name: t("AI"),
+        path: settingsPath("ai"),
+        component: AI.Component,
+        preload: AI.preload,
+        enabled: can.update,
+        group: t("Workspace"),
+        icon: SparklesIcon,
       },
       {
         name: t("Members"),
