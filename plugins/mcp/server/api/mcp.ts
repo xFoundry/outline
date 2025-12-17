@@ -297,7 +297,18 @@ router.post(
 
       const responses = await Promise.all(
         body.map((req: JsonRpcRequest) => {
-          // Validate each request in batch
+          // Check if request is a valid object
+          if (req === null || typeof req !== "object") {
+            return {
+              jsonrpc: "2.0",
+              id: null,
+              error: {
+                code: -32600,
+                message: "Invalid Request: request must be an object",
+              },
+            };
+          }
+          // Validate JSON-RPC version
           if (req.jsonrpc !== "2.0") {
             return {
               jsonrpc: "2.0",
