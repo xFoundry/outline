@@ -129,11 +129,12 @@ function getJsonSchemaType(schema: z.ZodTypeAny): string {
 
 /**
  * Handle MCP JSON-RPC requests
+ * Returns null for notifications (requests without id) per JSON-RPC 2.0 spec
  */
 async function handleMcpRequest(
   request: JsonRpcRequest,
   ctx: APIContext
-): Promise<JsonRpcResponse> {
+): Promise<JsonRpcResponse | null> {
   const { user } = ctx.state.auth;
 
   try {
@@ -232,11 +233,8 @@ async function handleMcpRequest(
 
       case "notifications/initialized": {
         // Client notification that initialization is complete
-        return {
-          jsonrpc: "2.0",
-          id: request.id,
-          result: {},
-        };
+        // JSON-RPC 2.0 spec: servers MUST NOT reply to notifications
+        return null;
       }
 
       default: {
@@ -328,7 +326,11 @@ router.post(
           return handleMcpRequest(req, ctx);
         })
       );
-      ctx.body = responses;
+      // Filter out null responses (notifications per JSON-RPC 2.0 spec)
+      const filteredResponses = responses.filter((r) => r !== null);
+      if (filteredResponses.length > 0) {
+        ctx.body = filteredResponses;
+      }
       return;
     }
 
@@ -360,7 +362,10 @@ router.post(
     }
 
     const response = await handleMcpRequest(request, ctx);
-    ctx.body = response;
+    // JSON-RPC 2.0 spec: servers MUST NOT reply to notifications
+    if (response !== null) {
+      ctx.body = response;
+    }
   }
 );
 
