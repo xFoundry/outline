@@ -269,11 +269,7 @@ async function handleMcpRequest(
 router.post(
   "mcp",
   auth({
-    type: [
-      AuthenticationType.API,
-      AuthenticationType.APP,
-      AuthenticationType.OAUTH,
-    ],
+    type: [AuthenticationType.API, AuthenticationType.OAUTH],
   }),
   async (ctx: APIContext) => {
     if (!env.MCP_ENABLED) {
@@ -320,11 +316,7 @@ router.post(
 router.get(
   "mcp/sse",
   auth({
-    type: [
-      AuthenticationType.API,
-      AuthenticationType.APP,
-      AuthenticationType.OAUTH,
-    ],
+    type: [AuthenticationType.API, AuthenticationType.OAUTH],
   }),
   async (ctx: APIContext) => {
     if (!env.MCP_ENABLED) {
@@ -389,11 +381,7 @@ router.get(
   "mcp/info",
   auth({
     optional: true,
-    type: [
-      AuthenticationType.API,
-      AuthenticationType.APP,
-      AuthenticationType.OAUTH,
-    ],
+    type: [AuthenticationType.API, AuthenticationType.OAUTH],
   }),
   async (ctx: APIContext) => {
     if (!env.MCP_ENABLED) {

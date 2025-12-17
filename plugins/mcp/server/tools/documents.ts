@@ -221,10 +221,7 @@ export const documentTools = {
         includeDrafts = false,
       } = params;
 
-      const statusFilter: StatusFilter[] = [];
-      if (!includeArchived) {
-        statusFilter.push(StatusFilter.Published);
-      }
+      const statusFilter: StatusFilter[] = [StatusFilter.Published];
       if (includeDrafts) {
         statusFilter.push(StatusFilter.Draft);
       }
@@ -236,8 +233,7 @@ export const documentTools = {
         query,
         collectionId,
         limit,
-        statusFilter:
-          statusFilter.length > 0 ? statusFilter : [StatusFilter.Published],
+        statusFilter,
       });
 
       // Save the search query for analytics

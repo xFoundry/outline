@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { Op, WhereOptions } from "sequelize";
 import { User } from "@server/models";
 import { authorize } from "@server/policies";
 
@@ -26,33 +27,23 @@ export const userTools = {
 
       authorize(user, "listUsers", user.team);
 
-      let users: User[];
+      // Build where clause with optional search filter at database level
+      const where: WhereOptions<User> = {
+        teamId: user.teamId,
+        ...(query && {
+          [Op.or]: [
+            { name: { [Op.iLike]: `%${query}%` } },
+            { email: { [Op.iLike]: `%${query}%` } },
+          ],
+        }),
+      };
 
-      if (query) {
-        users = await User.findAll({
-          where: {
-            teamId: user.teamId,
-          },
-          order: [["name", "ASC"]],
-          limit,
-          offset,
-        });
-        // Filter by query (name/email contains)
-        users = users.filter(
-          (u) =>
-            u.name?.toLowerCase().includes(query.toLowerCase()) ||
-            u.email?.toLowerCase().includes(query.toLowerCase())
-        );
-      } else {
-        users = await User.findAll({
-          where: {
-            teamId: user.teamId,
-          },
-          order: [["name", "ASC"]],
-          limit,
-          offset,
-        });
-      }
+      const users = await User.findAll({
+        where,
+        order: [["name", "ASC"]],
+        limit,
+        offset,
+      });
 
       return {
         content: [
