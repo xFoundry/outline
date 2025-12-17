@@ -333,6 +333,18 @@ router.post(
     }
 
     // Handle single request
+    if (body === null || typeof body !== "object") {
+      ctx.body = {
+        jsonrpc: "2.0",
+        id: null,
+        error: {
+          code: -32600,
+          message: "Invalid Request: request must be an object",
+        },
+      };
+      return;
+    }
+
     const request = body as JsonRpcRequest;
 
     if (request.jsonrpc !== "2.0") {
