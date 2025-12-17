@@ -1,0 +1,6 @@
+{
+  "id": "mcp",
+  "name": "MCP Server",
+  "description": "Model Context Protocol server for AI assistants to interact with Outline documents"
+}
+
