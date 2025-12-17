@@ -94,13 +94,13 @@ function NestedDocsList({ documentId, collectionId, maxVisible = 5 }: Props) {
     return [result, left];
   };
 
-  const hiddenCount = totalCount - maxVisible;
+  const [limitedNodes, remaining] = renderWithLimit(children, 0, maxVisible);
+  const actualRendered = maxVisible - remaining;
+  const hiddenCount = totalCount - actualRendered;
 
   return (
     <>
-      {expanded
-        ? children.map((node) => renderNode(node, 0))
-        : renderWithLimit(children, 0, maxVisible)[0]}
+      {expanded ? children.map((node) => renderNode(node, 0)) : limitedNodes}
       {hiddenCount > 0 && (
         <ExpandButton onClick={() => setExpanded(!expanded)}>
           {expanded
