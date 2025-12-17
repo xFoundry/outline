@@ -183,7 +183,9 @@ function PublicAccess({ document, share, sharedParents }: Props) {
   const visibleParents = parentsExpanded
     ? publishedParents
     : publishedParents.slice(0, MAX_VISIBLE_PARENTS);
-  const hiddenParentsCount = publishedParents.length - MAX_VISIBLE_PARENTS;
+  const hiddenParentsCount = parentsExpanded
+    ? 0
+    : publishedParents.length - MAX_VISIBLE_PARENTS;
 
   return (
     <Wrapper>
@@ -353,9 +355,7 @@ function PublicAccess({ document, share, sharedParents }: Props) {
                 {parentShare.collectionId ? (
                   <Trans>
                     Collection{" "}
-                    <StyledLink
-                      to={`/collection/${parentShare.collectionId}`}
-                    >
+                    <StyledLink to={`/collection/${parentShare.collectionId}`}>
                       {parentShare.sourceTitle}
                     </StyledLink>
                   </Trans>
