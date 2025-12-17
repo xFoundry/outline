@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { Document, Collection, User, SearchQuery } from "@server/models";
+import { DocumentHelper } from "@server/models/helpers/DocumentHelper";
 import SearchHelper from "@server/models/helpers/SearchHelper";
 import { authorize } from "@server/policies";
 import { Op, WhereOptions } from "sequelize";
@@ -431,11 +432,11 @@ export const documentTools = {
       }
 
       if (text !== undefined) {
-        if (append) {
-          document.text = document.text + "\n\n" + text;
-        } else {
-          document.text = text;
-        }
+        DocumentHelper.applyMarkdownToDocument(
+          document,
+          append ? "\n\n" + text : text,
+          append
+        );
       }
 
       document.lastModifiedById = user.id;
