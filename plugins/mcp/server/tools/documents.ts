@@ -1,10 +1,12 @@
 import { z } from "zod";
 import { Document, Collection, User, SearchQuery } from "@server/models";
-import { DocumentHelper } from "@server/models/helpers/DocumentHelper";
 import SearchHelper from "@server/models/helpers/SearchHelper";
 import { authorize } from "@server/policies";
 import { Op, WhereOptions } from "sequelize";
 import { StatusFilter } from "@shared/types";
+import { APIContext } from "@server/types";
+import documentCreator from "@server/commands/documentCreator";
+import documentUpdater from "@server/commands/documentUpdater";
 
 /**
  * Tool definitions for document operations
@@ -45,7 +47,8 @@ export const documentTools = {
         sort?: string;
         direction?: string;
       },
-      user: User
+      user: User,
+      _ctx: APIContext
     ) => {
       const {
         collectionId,
@@ -103,7 +106,7 @@ export const documentTools = {
               accessibleDocuments.map((doc) => ({
                 id: doc.id,
                 title: doc.title,
-                emoji: doc.emoji,
+                icon: doc.icon,
                 collectionId: doc.collectionId,
                 collectionName: doc.collection?.name,
                 createdAt: doc.createdAt,
@@ -126,7 +129,7 @@ export const documentTools = {
     inputSchema: z.object({
       id: z.string().uuid().describe("The document ID"),
     }),
-    handler: async (params: { id: string }, user: User) => {
+    handler: async (params: { id: string }, user: User, _ctx: APIContext) => {
       const document = await Document.findByPk(params.id, {
         include: [
           {
@@ -158,7 +161,7 @@ export const documentTools = {
               {
                 id: document.id,
                 title: document.title,
-                emoji: document.emoji,
+                icon: document.icon,
                 text: document.text,
                 collectionId: document.collectionId,
                 collectionName: document.collection?.name,
@@ -212,7 +215,8 @@ export const documentTools = {
         includeArchived?: boolean;
         includeDrafts?: boolean;
       },
-      user: User
+      user: User,
+      _ctx: APIContext
     ) => {
       const {
         query,
@@ -254,7 +258,7 @@ export const documentTools = {
               results.map((result) => ({
                 id: result.document.id,
                 title: result.document.title,
-                emoji: result.document.emoji,
+                icon: result.document.icon,
                 collectionId: result.document.collectionId,
                 context: result.context,
                 ranking: result.ranking,
@@ -296,7 +300,8 @@ export const documentTools = {
         parentDocumentId?: string;
         publish?: boolean;
       },
-      user: User
+      user: User,
+      ctx: APIContext
     ) => {
       const {
         title,
@@ -351,20 +356,16 @@ export const documentTools = {
         authorize(user, "read", parentDocument);
       }
 
-      const document = await Document.create({
+      // Use documentCreator command to properly emit events for indexing, webhooks, etc.
+      const document = await documentCreator({
         title,
         text,
         collectionId,
         parentDocumentId,
-        teamId: user.teamId,
-        createdById: user.id,
-        lastModifiedById: user.id,
-        publishedAt: publish ? new Date() : null,
+        publish,
+        user,
+        ctx,
       });
-
-      if (publish) {
-        await collection.addDocumentToStructure(document, 0);
-      }
 
       return {
         content: [
@@ -408,7 +409,8 @@ export const documentTools = {
         text?: string;
         append?: boolean;
       },
-      user: User
+      user: User,
+      ctx: APIContext
     ) => {
       const { id, title, text, append = false } = params;
 
@@ -427,20 +429,15 @@ export const documentTools = {
 
       authorize(user, "update", document);
 
-      if (title !== undefined) {
-        document.title = title;
-      }
-
-      if (text !== undefined) {
-        DocumentHelper.applyMarkdownToDocument(
-          document,
-          append ? "\n\n" + text : text,
-          append
-        );
-      }
-
-      document.lastModifiedById = user.id;
-      await document.save();
+      // Use documentUpdater command to properly emit events for indexing, webhooks, revisions, etc.
+      const updatedDocument = await documentUpdater(ctx, {
+        user,
+        document,
+        title,
+        text,
+        append,
+        done: true, // Mark the editing session as complete
+      });
 
       return {
         content: [
@@ -448,10 +445,10 @@ export const documentTools = {
             type: "text" as const,
             text: JSON.stringify(
               {
-                id: document.id,
-                title: document.title,
-                updatedAt: document.updatedAt,
-                url: document.url,
+                id: updatedDocument.id,
+                title: updatedDocument.title,
+                updatedAt: updatedDocument.updatedAt,
+                url: updatedDocument.url,
               },
               null,
               2

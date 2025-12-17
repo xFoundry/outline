@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { Collection, User } from "@server/models";
 import { authorize } from "@server/policies";
+import { APIContext } from "@server/types";
 
 /**
  * Tool definitions for collection operations
@@ -15,7 +16,11 @@ export const collectionTools = {
         .default(false)
         .describe("Include archived collections"),
     }),
-    handler: async (params: { includeArchived?: boolean }, user: User) => {
+    handler: async (
+      params: { includeArchived?: boolean },
+      user: User,
+      _ctx: APIContext
+    ) => {
       const { includeArchived = false } = params;
 
       const collections = await Collection.findAll({
@@ -69,7 +74,7 @@ export const collectionTools = {
     inputSchema: z.object({
       id: z.string().uuid().describe("The collection ID"),
     }),
-    handler: async (params: { id: string }, user: User) => {
+    handler: async (params: { id: string }, user: User, _ctx: APIContext) => {
       const collection = await Collection.findByPk(params.id);
 
       if (!collection) {
@@ -120,7 +125,7 @@ export const collectionTools = {
     inputSchema: z.object({
       id: z.string().uuid().describe("The collection ID"),
     }),
-    handler: async (params: { id: string }, user: User) => {
+    handler: async (params: { id: string }, user: User, _ctx: APIContext) => {
       const collection = await Collection.findByPk(params.id);
 
       if (!collection) {
@@ -142,7 +147,9 @@ export const collectionTools = {
         nodes: typeof collection.documentStructure,
         path: string[] = []
       ): Array<{ id: string; title: string; path: string[]; url: string }> => {
-        if (!nodes) {return [];}
+        if (!nodes) {
+          return [];
+        }
 
         const result: Array<{
           id: string;

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { Op, WhereOptions } from "sequelize";
 import { User } from "@server/models";
 import { authorize } from "@server/policies";
+import { APIContext } from "@server/types";
 
 /**
  * Tool definitions for user operations
@@ -21,7 +22,8 @@ export const userTools = {
     }),
     handler: async (
       params: { limit?: number; offset?: number; query?: string },
-      user: User
+      user: User,
+      _ctx: APIContext
     ) => {
       const { limit = 25, offset = 0, query } = params;
 
@@ -71,7 +73,11 @@ export const userTools = {
   users_me: {
     description: "Get information about the currently authenticated user.",
     inputSchema: z.object({}),
-    handler: async (_params: Record<string, never>, user: User) => ({
+    handler: async (
+      _params: Record<string, never>,
+      user: User,
+      _ctx: APIContext
+    ) => ({
       content: [
         {
           type: "text" as const,

@@ -2,6 +2,7 @@ import Router from "koa-router";
 import { z } from "zod";
 import { randomUUID } from "crypto";
 import auth from "@server/middlewares/authentication";
+import { transaction } from "@server/middlewares/transaction";
 import { APIContext, AuthenticationType } from "@server/types";
 import Logger from "@server/logging/Logger";
 import { allTools, ToolName } from "../tools";
@@ -13,7 +14,7 @@ const router = new Router();
  * CORS middleware for MCP endpoints
  * Allows cross-origin requests from any origin (or configure specific origins)
  */
-router.all(/^mcp(\/.*)?$/, async (ctx, next) => {
+router.all(/^\/?mcp(\/.*)?$/, async (ctx, next) => {
   // Allow requests from any origin for MCP (or set specific allowed origins)
   const allowedOrigin = ctx.get("Origin") || "*";
 
@@ -85,7 +86,14 @@ function buildToolDefinitions() {
         })
       ),
       required: Object.entries(tool.inputSchema.shape)
-        .filter(([_, schema]) => !(schema as z.ZodTypeAny).isOptional())
+        .filter(([_, schema]) => {
+          const zodSchema = schema as z.ZodTypeAny;
+          // Check for both .optional() and .default() - neither should be required
+          const isOptional = zodSchema.isOptional();
+          const hasDefault =
+            "_def" in zodSchema && zodSchema._def.defaultValue !== undefined;
+          return !isOptional && !hasDefault;
+        })
         .map(([key]) => key),
     },
   }));
@@ -198,17 +206,14 @@ async function handleMcpRequest(
           };
         }
 
-        Logger.debug("mcp", `Executing tool ${toolName}`, {
+        Logger.debug("commands", `MCP: Executing tool ${toolName}`, {
           userId: user.id,
           teamId: user.teamId,
         });
 
         // Execute the tool - data is validated by Zod schema above
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic tool dispatch requires any
-        const result = await tool.handler(
-          parseResult.data as Parameters<typeof tool.handler>[0],
-          user
-        );
+        // @ts-expect-error -- dynamic tool dispatch requires type coercion
+        const result = await tool.handler(parseResult.data, user, ctx);
 
         return {
           jsonrpc: "2.0",
@@ -271,6 +276,7 @@ router.post(
   auth({
     type: [AuthenticationType.API, AuthenticationType.OAUTH],
   }),
+  transaction(),
   async (ctx: APIContext) => {
     if (!env.MCP_ENABLED) {
       ctx.status = 404;
@@ -380,7 +386,7 @@ router.get(
       `event: endpoint\ndata: ${JSON.stringify({ endpoint: `/api/mcp?sessionId=${sessionId}` })}\n\n`
     );
 
-    Logger.debug("mcp", "SSE connection established", {
+    Logger.debug("http", "MCP: SSE connection established", {
       userId: user.id,
       sessionId,
     });
@@ -397,7 +403,7 @@ router.get(
     // Clean up on close
     ctx.req.on("close", () => {
       clearInterval(pingInterval);
-      Logger.debug("mcp", "SSE connection closed", {
+      Logger.debug("http", "MCP: SSE connection closed", {
         userId: user.id,
         sessionId,
       });
