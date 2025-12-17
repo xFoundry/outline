@@ -320,6 +320,36 @@ export const documentTools = {
 
       authorize(user, "createDocument", collection);
 
+      // Validate parent document if provided
+      if (parentDocumentId) {
+        const parentDocument = await Document.findByPk(parentDocumentId);
+        if (!parentDocument) {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: JSON.stringify({ error: "Parent document not found" }),
+              },
+            ],
+            isError: true,
+          };
+        }
+        if (parentDocument.collectionId !== collectionId) {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: JSON.stringify({
+                  error: "Parent document must be in the same collection",
+                }),
+              },
+            ],
+            isError: true,
+          };
+        }
+        authorize(user, "read", parentDocument);
+      }
+
       const document = await Document.create({
         title,
         text,

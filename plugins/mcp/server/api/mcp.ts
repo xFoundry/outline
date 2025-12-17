@@ -13,7 +13,7 @@ const router = new Router();
  * CORS middleware for MCP endpoints
  * Allows cross-origin requests from any origin (or configure specific origins)
  */
-router.all("mcp*", async (ctx, next) => {
+router.all(/^mcp(\/.*)?$/, async (ctx, next) => {
   // Allow requests from any origin for MCP (or set specific allowed origins)
   const allowedOrigin = ctx.get("Origin") || "*";
 
