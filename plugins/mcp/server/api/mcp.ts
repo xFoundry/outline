@@ -282,8 +282,34 @@ router.post(
 
     // Handle batch requests
     if (Array.isArray(body)) {
+      // Empty batch is invalid per JSON-RPC 2.0 spec
+      if (body.length === 0) {
+        ctx.body = {
+          jsonrpc: "2.0",
+          id: null,
+          error: {
+            code: -32600,
+            message: "Invalid Request: batch must contain at least one request",
+          },
+        };
+        return;
+      }
+
       const responses = await Promise.all(
-        body.map((req: JsonRpcRequest) => handleMcpRequest(req, ctx))
+        body.map((req: JsonRpcRequest) => {
+          // Validate each request in batch
+          if (req.jsonrpc !== "2.0") {
+            return {
+              jsonrpc: "2.0",
+              id: req.id ?? null,
+              error: {
+                code: -32600,
+                message: "Invalid Request: must be JSON-RPC 2.0",
+              },
+            };
+          }
+          return handleMcpRequest(req, ctx);
+        })
       );
       ctx.body = responses;
       return;
