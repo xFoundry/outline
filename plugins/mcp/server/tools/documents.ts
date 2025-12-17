@@ -242,10 +242,11 @@ export const documentTools = {
       });
 
       // Save the search query for analytics
+      // Note: Using "api" as source since SearchQuery enum doesn't include "mcp"
       await SearchQuery.create({
         userId: user.id,
         teamId: user.teamId,
-        source: "mcp",
+        source: "api",
         query,
         results: results.length,
       });
