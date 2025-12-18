@@ -14,29 +14,41 @@ import documentUpdater from "@server/commands/documentUpdater";
 export const documentTools = {
   documents_list: {
     description:
-      "List documents in the workspace. Can filter by collection, user, or other criteria.",
+      "List and browse documents in the knowledge base. Use this to discover what documents exist, find documents in a specific collection, or see recently updated content. Returns document titles, IDs, and metadata but NOT full content - use documents_info to get content.",
     inputSchema: z.object({
       collectionId: z
         .string()
-        .uuid()
         .optional()
-        .describe("Filter by collection ID"),
-      userId: z.string().uuid().optional().describe("Filter by author user ID"),
+        .describe(
+          "Optional: Filter to only show documents from a specific collection. Get collection IDs from collections_list."
+        ),
+      userId: z
+        .string()
+        .optional()
+        .describe(
+          "Optional: Filter to only show documents created by a specific user."
+        ),
       limit: z
         .number()
         .min(1)
         .max(100)
         .default(25)
-        .describe("Number of documents to return"),
-      offset: z.number().min(0).default(0).describe("Pagination offset"),
+        .describe("How many documents to return (1-100, default 25)"),
+      offset: z
+        .number()
+        .min(0)
+        .default(0)
+        .describe("Skip this many documents for pagination (default 0)"),
       sort: z
         .enum(["updatedAt", "createdAt", "title", "index"])
         .default("updatedAt")
-        .describe("Sort field"),
+        .describe("Sort by: updatedAt (default), createdAt, title, or index"),
       direction: z
         .enum(["ASC", "DESC"])
         .default("DESC")
-        .describe("Sort direction"),
+        .describe(
+          "Sort direction: DESC (newest first, default) or ASC (oldest first)"
+        ),
     }),
     handler: async (
       params: {
@@ -125,9 +137,13 @@ export const documentTools = {
 
   documents_info: {
     description:
-      "Get detailed information about a specific document including its content.",
+      "Get the FULL CONTENT and details of a specific document. Use this when you need to read what a document actually says. Requires a document ID (UUID like '550e8400-e29b-41d4-a716-446655440000') or URL slug (like 'my-document-title-2r47tupaTA') - get these from documents_list or documents_search results.",
     inputSchema: z.object({
-      id: z.string().uuid().describe("The document ID"),
+      id: z
+        .string()
+        .describe(
+          "The document ID (UUID) or URL slug from search/list results. Example: '550e8400-e29b-41d4-a716-446655440000' or 'resource-matrix-2r47tupaTA'"
+        ),
     }),
     handler: async (params: { id: string }, user: User, _ctx: APIContext) => {
       const document = await Document.findByPk(params.id, {
@@ -184,28 +200,34 @@ export const documentTools = {
 
   documents_search: {
     description:
-      "Search for documents by query. Returns matching documents with snippets.",
+      "Search for documents by keywords or phrases. This is the BEST way to find documents about a specific topic. Returns matching documents with context snippets showing where matches were found. Use the returned document IDs with documents_info to get full content.",
     inputSchema: z.object({
-      query: z.string().min(1).describe("Search query"),
+      query: z
+        .string()
+        .min(1)
+        .describe(
+          "Search terms to find in documents. Can be keywords, phrases, or questions. Example: 'onboarding process' or 'how to request time off'"
+        ),
       collectionId: z
         .string()
-        .uuid()
         .optional()
-        .describe("Filter by collection ID"),
+        .describe(
+          "Optional: Limit search to a specific collection. Get collection IDs from collections_list."
+        ),
       limit: z
         .number()
         .min(1)
         .max(100)
         .default(25)
-        .describe("Number of results to return"),
+        .describe("Maximum number of results to return (1-100, default 25)"),
       includeArchived: z
         .boolean()
         .default(false)
-        .describe("Include archived documents"),
+        .describe("Set to true to also search archived/deleted documents"),
       includeDrafts: z
         .boolean()
         .default(false)
-        .describe("Include draft documents"),
+        .describe("Set to true to also search unpublished draft documents"),
     }),
     handler: async (
       params: {
@@ -275,23 +297,38 @@ export const documentTools = {
   },
 
   documents_create: {
-    description: "Create a new document in a collection.",
+    description:
+      "Create a NEW document in the knowledge base. Requires specifying which collection to put it in. Use collections_list first to find available collections and their IDs.",
     inputSchema: z.object({
-      title: z.string().min(1).describe("Document title"),
-      text: z.string().optional().describe("Document content in Markdown"),
+      title: z
+        .string()
+        .min(1)
+        .describe(
+          "Title for the new document. Example: 'Employee Onboarding Guide'"
+        ),
+      text: z
+        .string()
+        .optional()
+        .describe(
+          "Document content in Markdown format. Supports headings (#, ##), lists (-, *), links, code blocks, etc. Leave empty to create a blank document."
+        ),
       collectionId: z
         .string()
-        .uuid()
-        .describe("Collection to create document in"),
+        .describe(
+          "REQUIRED: The collection ID (UUID) where this document should be created. Get this from collections_list."
+        ),
       parentDocumentId: z
         .string()
-        .uuid()
         .optional()
-        .describe("Parent document ID for nested documents"),
+        .describe(
+          "Optional: Place this document as a child/nested page under another document. Provide the parent document's ID."
+        ),
       publish: z
         .boolean()
         .default(true)
-        .describe("Whether to publish the document immediately"),
+        .describe(
+          "Whether to publish immediately (true, default) or save as draft (false)"
+        ),
     }),
     handler: async (
       params: {
@@ -391,16 +428,31 @@ export const documentTools = {
   },
 
   documents_update: {
-    description: "Update an existing document's title or content.",
+    description:
+      "Edit/update an EXISTING document's title or content. Use documents_search or documents_list first to find the document ID you want to update.",
     inputSchema: z.object({
-      id: z.string().uuid().describe("Document ID to update"),
-      title: z.string().optional().describe("New document title"),
-      text: z.string().optional().describe("New document content in Markdown"),
+      id: z
+        .string()
+        .describe(
+          "The document ID (UUID) or URL slug to update. Get this from documents_list or documents_search."
+        ),
+      title: z
+        .string()
+        .optional()
+        .describe(
+          "New title for the document. Leave empty to keep current title."
+        ),
+      text: z
+        .string()
+        .optional()
+        .describe(
+          "New content in Markdown format. By default REPLACES all existing content. Use 'append: true' to add to the end instead."
+        ),
       append: z
         .boolean()
         .default(false)
         .describe(
-          "If true, append text to existing content instead of replacing"
+          "If true, ADD the text to the end of the document instead of replacing everything. Useful for adding new sections."
         ),
     }),
     handler: async (
