@@ -9,16 +9,26 @@ import { APIContext } from "@server/types";
  */
 export const userTools = {
   users_list: {
-    description: "List users in the workspace.",
+    description:
+      "List team members/users who have access to this knowledge base. Useful for finding who created a document or assigning ownership.",
     inputSchema: z.object({
       limit: z
         .number()
         .min(1)
         .max(100)
         .default(25)
-        .describe("Number of users to return"),
-      offset: z.number().min(0).default(0).describe("Pagination offset"),
-      query: z.string().optional().describe("Search by name or email"),
+        .describe("How many users to return (1-100, default 25)"),
+      offset: z
+        .number()
+        .min(0)
+        .default(0)
+        .describe("Skip this many users for pagination"),
+      query: z
+        .string()
+        .optional()
+        .describe(
+          "Optional: Search/filter users by name or email. Example: 'john' or 'john@example.com'"
+        ),
     }),
     handler: async (
       params: { limit?: number; offset?: number; query?: string },
@@ -71,7 +81,8 @@ export const userTools = {
   },
 
   users_me: {
-    description: "Get information about the currently authenticated user.",
+    description:
+      "Get information about YOU - the currently authenticated user making this request. Shows your name, email, role, and permissions.",
     inputSchema: z.object({}),
     handler: async (
       _params: Record<string, never>,

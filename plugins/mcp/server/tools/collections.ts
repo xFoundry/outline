@@ -9,12 +9,12 @@ import { APIContext } from "@server/types";
 export const collectionTools = {
   collections_list: {
     description:
-      "List all collections in the workspace that the user can access.",
+      "List all collections (folders/categories) in the knowledge base. Collections organize documents by topic or team. Use this FIRST to discover what's available and get collection IDs needed for other operations like creating documents or filtering searches.",
     inputSchema: z.object({
       includeArchived: z
         .boolean()
         .default(false)
-        .describe("Include archived collections"),
+        .describe("Set to true to also show archived/deleted collections"),
     }),
     handler: async (
       params: { includeArchived?: boolean },
@@ -70,9 +70,9 @@ export const collectionTools = {
 
   collections_info: {
     description:
-      "Get detailed information about a specific collection including its document structure.",
+      "Get details about a specific collection including its full document tree structure. Use this to understand how documents are organized within a collection.",
     inputSchema: z.object({
-      id: z.string().uuid().describe("The collection ID"),
+      id: z.string().describe("The collection ID (UUID) from collections_list"),
     }),
     handler: async (params: { id: string }, user: User, _ctx: APIContext) => {
       const collection = await Collection.findByPk(params.id);
@@ -121,9 +121,9 @@ export const collectionTools = {
 
   collections_documents: {
     description:
-      "Get the hierarchical document structure of a collection, showing all documents and their nesting.",
+      "Get a flat list of ALL documents in a collection with their hierarchy paths. Shows parent-child relationships. Useful to see the complete table of contents for a collection.",
     inputSchema: z.object({
-      id: z.string().uuid().describe("The collection ID"),
+      id: z.string().describe("The collection ID (UUID) from collections_list"),
     }),
     handler: async (params: { id: string }, user: User, _ctx: APIContext) => {
       const collection = await Collection.findByPk(params.id);
