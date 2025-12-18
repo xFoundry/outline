@@ -397,11 +397,11 @@ router.get(
 
     ctx.status = 200;
 
-    // Send initial connection event
+    // Send initial connection event with message endpoint URL
+    // Per MCP HTTP+SSE spec, the endpoint event data should be the raw URL string, not JSON
     const sessionId = randomUUID();
-    ctx.res.write(
-      `event: endpoint\ndata: ${JSON.stringify({ endpoint: `/api/mcp?sessionId=${sessionId}` })}\n\n`
-    );
+    const messageEndpoint = `/api/mcp?sessionId=${sessionId}`;
+    ctx.res.write(`event: endpoint\ndata: ${messageEndpoint}\n\n`);
 
     Logger.debug("http", "MCP: SSE connection established", {
       userId: user.id,
