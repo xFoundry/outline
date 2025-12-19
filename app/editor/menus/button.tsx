@@ -2,6 +2,7 @@ import {
   AlignImageCenterIcon,
   AlignImageLeftIcon,
   AlignImageRightIcon,
+  EditIcon,
   TrashIcon,
 } from "outline-icons";
 import { EditorState } from "prosemirror-state";
@@ -31,6 +32,14 @@ export default function buttonMenuItems(
   });
 
   return [
+    {
+      name: "editButtonUrl",
+      tooltip: dictionary.editLink,
+      icon: <EditIcon />,
+    },
+    {
+      name: "separator",
+    },
     {
       name: "setButtonVariant",
       label: "Primary",

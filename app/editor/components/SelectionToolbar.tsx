@@ -29,6 +29,7 @@ import getTableColMenuItems from "../menus/tableCol";
 import getTableRowMenuItems from "../menus/tableRow";
 import getVideoMenuItems from "../menus/video";
 import { useEditor } from "./EditorContext";
+import { ButtonEditor } from "./ButtonEditor";
 import { MediaLinkEditor } from "./MediaLinkEditor";
 import FloatingToolbar from "./FloatingToolbar";
 import LinkEditor from "./LinkEditor";
@@ -74,10 +75,12 @@ export function SelectionToolbar(props: Props) {
   const isDragging = useIsDragging();
   const [isEditingImgUrl, setIsEditingImgUrl] = React.useState(false);
   const [isEditingEmbedUrl, setIsEditingEmbedUrl] = React.useState(false);
+  const [isEditingButtonUrl, setIsEditingButtonUrl] = React.useState(false);
 
   React.useEffect(() => {
     setIsEditingImgUrl(false);
     setIsEditingEmbedUrl(false);
+    setIsEditingButtonUrl(false);
   }, [isActive]);
 
   React.useEffect(() => {
@@ -103,6 +106,7 @@ export function SelectionToolbar(props: Props) {
 
       setIsEditingImgUrl(false);
       setIsEditingEmbedUrl(false);
+      setIsEditingButtonUrl(false);
 
       const { dispatch } = view;
       dispatch(
@@ -184,7 +188,7 @@ export function SelectionToolbar(props: Props) {
     items = getImageMenuItems(state, readOnly, dictionary);
   } else if (isAttachmentSelection) {
     items = getAttachmentMenuItems(state, readOnly, dictionary);
-  } else if (isButtonSelection) {
+  } else if (isButtonSelection && !isEditingButtonUrl) {
     items = getButtonMenuItems(state, readOnly, dictionary);
   } else if (isVideoSelection) {
     items = getVideoMenuItems(state, readOnly, dictionary);
@@ -229,13 +233,16 @@ export function SelectionToolbar(props: Props) {
   const isEditingMedia =
     (isEmbedSelection && isEditingEmbedUrl) ||
     (isImageSelection && isEditingImgUrl);
+  const isEditingButton = isButtonSelection && isEditingButtonUrl;
 
   return (
     <FloatingToolbar
       align={align}
       active={isActive}
       ref={menuRef}
-      width={showLinkToolbar || isEditingMedia ? 336 : undefined}
+      width={
+        showLinkToolbar || isEditingMedia || isEditingButton ? 336 : undefined
+      }
     >
       {showLinkToolbar ? (
         <LinkEditor
@@ -256,6 +263,14 @@ export function SelectionToolbar(props: Props) {
           dictionary={dictionary}
           autoFocus={isEditingImgUrl}
         />
+      ) : isEditingButton ? (
+        <ButtonEditor
+          key={`button-${selection.from}`}
+          node={selection.node}
+          view={view}
+          dictionary={dictionary}
+          autoFocus
+        />
       ) : (
         <ToolbarMenu
           items={items}
@@ -263,6 +278,7 @@ export function SelectionToolbar(props: Props) {
           handlers={{
             editImageUrl: () => setIsEditingImgUrl(true),
             editEmbedUrl: () => setIsEditingEmbedUrl(true),
+            editButtonUrl: () => setIsEditingButtonUrl(true),
           }}
         />
       )}
