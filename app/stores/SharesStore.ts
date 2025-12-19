@@ -173,9 +173,8 @@ export default class SharesStore extends Store<Share> {
    * Get the first parent share that includes this document.
    * For backwards compatibility.
    */
-  getByDocumentParents = (document: Document): Share | undefined => {
-    return this.getAllByDocumentParents(document)[0];
-  };
+  getByDocumentParents = (document: Document): Share | undefined =>
+    this.getAllByDocumentParents(document)[0];
 
   getByCollectionId = (collectionId: string): Share | null | undefined =>
     find(this.orderedData, (share) => share.collectionId === collectionId);

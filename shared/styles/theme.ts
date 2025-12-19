@@ -1,6 +1,8 @@
 import { darken, lighten, transparentize } from "polished";
 import { DefaultTheme, Colors } from "styled-components";
 import breakpoints from "./breakpoints";
+import { CustomTheme } from "../types";
+import { buildFontStack } from "../utils/googleFonts";
 
 const defaultColors: Colors = {
   transparent: "transparent",
@@ -51,15 +53,16 @@ const spacing = {
   sidebarMaxWidth: 600,
 };
 
-const buildBaseTheme = (input: Partial<Colors>) => {
+const buildBaseTheme = (input: Partial<Colors> & Partial<CustomTheme>) => {
   const colors = {
     ...defaultColors,
     ...input,
   };
 
   return {
-    fontFamily:
-      "-apple-system, BlinkMacSystemFont, Inter, 'Segoe UI', Roboto, Oxygen, sans-serif",
+    imageBorderRadius: input.imageBorderRadius ?? "8px",
+    fontFamily: buildFontStack(input.fontFamilyBody),
+    fontFamilyHeading: buildFontStack(input.fontFamilyHeading),
     fontFamilyMono:
       "'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace",
     fontFamilyEmoji:
@@ -108,7 +111,9 @@ const buildBaseTheme = (input: Partial<Colors>) => {
   };
 };
 
-export const buildLightTheme = (input: Partial<Colors>): DefaultTheme => {
+export const buildLightTheme = (
+  input: Partial<Colors> & Partial<CustomTheme>
+): DefaultTheme => {
   const colors = buildBaseTheme(input);
 
   return {
@@ -171,7 +176,9 @@ export const buildLightTheme = (input: Partial<Colors>): DefaultTheme => {
   };
 };
 
-export const buildDarkTheme = (input: Partial<Colors>): DefaultTheme => {
+export const buildDarkTheme = (
+  input: Partial<Colors> & Partial<CustomTheme>
+): DefaultTheme => {
   const colors = buildBaseTheme(input);
 
   return {
@@ -258,7 +265,9 @@ export const buildDarkTheme = (input: Partial<Colors>): DefaultTheme => {
   };
 };
 
-export const buildPitchBlackTheme = (input: Partial<Colors>) => {
+export const buildPitchBlackTheme = (
+  input: Partial<Colors> & Partial<CustomTheme>
+): DefaultTheme => {
   const colors = buildDarkTheme(input);
 
   return {

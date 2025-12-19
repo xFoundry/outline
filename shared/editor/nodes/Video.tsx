@@ -1,6 +1,6 @@
 import { Token } from "markdown-it";
 import { NodeSpec, NodeType, Node as ProsemirrorNode } from "prosemirror-model";
-import { NodeSelection, TextSelection } from "prosemirror-state";
+import { Command, NodeSelection, TextSelection } from "prosemirror-state";
 import * as React from "react";
 import { Primitive } from "utility-types";
 import { sanitizeUrl } from "../../utils/urls";
@@ -40,6 +40,10 @@ export default class Video extends Node {
           default: null,
           validate: "string|null",
         },
+        layoutClass: {
+          default: null,
+          validate: "string|null",
+        },
       },
       group: "block",
       selectable: true,
@@ -50,8 +54,28 @@ export default class Video extends Node {
       parseDOM: [
         {
           priority: 100,
+          tag: "div.video",
+          getAttrs: (dom: HTMLDivElement) => {
+            const className = dom.className;
+            const layoutClassMatch = className.match(
+              /video-(left-50|right-50|full-width)/
+            );
+            const layoutClass = layoutClassMatch ? layoutClassMatch[1] : null;
+            const video = dom.querySelector("video");
+            return {
+              id: video?.id,
+              title: video?.getAttribute("title"),
+              src: video?.getAttribute("src"),
+              width: parseInt(video?.getAttribute("width") ?? "", 10),
+              height: parseInt(video?.getAttribute("height") ?? "", 10),
+              layoutClass,
+            };
+          },
+        },
+        {
+          priority: 100,
           tag: "video",
-          getAttrs: (dom: HTMLAnchorElement) => ({
+          getAttrs: (dom: HTMLVideoElement) => ({
             id: dom.id,
             title: dom.getAttribute("title"),
             src: dom.getAttribute("src"),
@@ -60,23 +84,28 @@ export default class Video extends Node {
           }),
         },
       ],
-      toDOM: (node) => [
-        "div",
-        {
-          class: "video",
-        },
-        [
-          "video",
+      toDOM: (node) => {
+        const className = node.attrs.layoutClass
+          ? `video video-${node.attrs.layoutClass}`
+          : "video";
+        return [
+          "div",
           {
-            id: node.attrs.id,
-            src: sanitizeUrl(node.attrs.src),
-            controls: true,
-            width: node.attrs.width,
-            height: node.attrs.height,
+            class: className,
           },
-          String(node.attrs.title),
-        ],
-      ],
+          [
+            "video",
+            {
+              id: node.attrs.id,
+              src: sanitizeUrl(node.attrs.src),
+              controls: true,
+              width: node.attrs.width,
+              height: node.attrs.height,
+            },
+            String(node.attrs.title),
+          ],
+        ];
+      },
       leafText: (node) => node.attrs.title,
     };
   }
@@ -173,7 +202,69 @@ export default class Video extends Node {
   );
 
   commands({ type }: { type: NodeType }) {
-    return (attrs: Record<string, Primitive>) => toggleWrap(type, attrs);
+    return {
+      video: (attrs: Record<string, Primitive>) => toggleWrap(type, attrs),
+      alignVideoLeft: (): Command => (state, dispatch) => {
+        if (!(state.selection instanceof NodeSelection)) {
+          return false;
+        }
+        const { selection } = state;
+        dispatch?.(
+          state.tr.setNodeMarkup(selection.from, undefined, {
+            ...selection.node.attrs,
+            layoutClass: "left-50",
+          })
+        );
+        return true;
+      },
+      alignVideoCenter: (): Command => (state, dispatch) => {
+        if (!(state.selection instanceof NodeSelection)) {
+          return false;
+        }
+        const { selection } = state;
+        dispatch?.(
+          state.tr.setNodeMarkup(selection.from, undefined, {
+            ...selection.node.attrs,
+            layoutClass: null,
+          })
+        );
+        return true;
+      },
+      alignVideoRight: (): Command => (state, dispatch) => {
+        if (!(state.selection instanceof NodeSelection)) {
+          return false;
+        }
+        const { selection } = state;
+        dispatch?.(
+          state.tr.setNodeMarkup(selection.from, undefined, {
+            ...selection.node.attrs,
+            layoutClass: "right-50",
+          })
+        );
+        return true;
+      },
+      alignVideoFullWidth: (): Command => (state, dispatch) => {
+        if (!(state.selection instanceof NodeSelection)) {
+          return false;
+        }
+        const { selection } = state;
+        let layoutClass: string | null = "full-width";
+        if (selection.node.attrs.layoutClass === layoutClass) {
+          layoutClass = null;
+        }
+        dispatch?.(
+          state.tr.setNodeMarkup(selection.from, undefined, {
+            ...selection.node.attrs,
+            layoutClass,
+          })
+        );
+        return true;
+      },
+      deleteVideo: (): Command => (state, dispatch) => {
+        dispatch?.(state.tr.deleteSelection());
+        return true;
+      },
+    };
   }
 
   toMarkdown(state: MarkdownSerializerState, node: ProsemirrorNode) {

@@ -42,6 +42,7 @@ declare module "styled-components" {
     scrollbarBackground: string;
     scrollbarThumb: string;
     fontFamily: string;
+    fontFamilyHeading: string;
     fontFamilyMono: string;
     fontFamilyEmoji: string;
     fontWeightRegular: number;
@@ -179,5 +180,6 @@ declare module "styled-components" {
     progressBarBackground: string;
     scrollbarBackground: string;
     scrollbarThumb: string;
+    imageBorderRadius: string;
   }
 }

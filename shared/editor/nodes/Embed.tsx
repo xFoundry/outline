@@ -32,8 +32,29 @@ export default class Embed extends Node {
         height: {
           default: null,
         },
+        layoutClass: {
+          default: null,
+          validate: "string|null",
+        },
       },
       parseDOM: [
+        {
+          tag: "div.embed-wrapper",
+          getAttrs: (dom: HTMLDivElement) => {
+            const className = dom.className;
+            const layoutClassMatch = className.match(
+              /embed-(left-50|right-50|full-width)/
+            );
+            const layoutClass = layoutClassMatch ? layoutClassMatch[1] : null;
+            const iframe = dom.querySelector("iframe");
+            const link = dom.querySelector("a");
+            const href =
+              iframe?.getAttribute("data-canonical-url") ||
+              link?.getAttribute("href") ||
+              "";
+            return { href, layoutClass };
+          },
+        },
         {
           tag: "iframe",
           getAttrs: (dom: HTMLIFrameElement) => {
@@ -61,29 +82,40 @@ export default class Embed extends Node {
         const embeds = this.editor?.props.embeds ?? defaultEmbeds;
         const response = getMatchingEmbed(embeds, node.attrs.href);
         const src = response?.embed.transformMatch?.(response.matches);
+        const wrapperClass = node.attrs.layoutClass
+          ? `embed-wrapper embed-${node.attrs.layoutClass}`
+          : "embed-wrapper";
 
         if (src) {
           return [
-            "iframe",
-            {
-              class: "embed",
-              frameborder: "0",
-              src: sanitizeUrl(src),
-              contentEditable: "false",
-              allowfullscreen: "true",
-              "data-canonical-url": sanitizeUrl(node.attrs.href),
-            },
+            "div",
+            { class: wrapperClass },
+            [
+              "iframe",
+              {
+                class: "embed",
+                frameborder: "0",
+                src: sanitizeUrl(src),
+                contentEditable: "false",
+                allowfullscreen: "true",
+                "data-canonical-url": sanitizeUrl(node.attrs.href),
+              },
+            ],
           ];
         } else {
           return [
-            "a",
-            {
-              class: "embed",
-              href: sanitizeUrl(node.attrs.href),
-              contentEditable: "false",
-              "data-canonical-url": sanitizeUrl(node.attrs.href),
-            },
-            response?.embed.title ?? node.attrs.href,
+            "div",
+            { class: wrapperClass },
+            [
+              "a",
+              {
+                class: "embed",
+                href: sanitizeUrl(node.attrs.href),
+                contentEditable: "false",
+                "data-canonical-url": sanitizeUrl(node.attrs.href),
+              },
+              response?.embed.title ?? node.attrs.href,
+            ],
           ];
         }
       },
@@ -127,13 +159,76 @@ export default class Embed extends Node {
   };
 
   commands({ type }: { type: NodeType }) {
-    return (attrs: Record<string, Primitive>): Command =>
-      (state, dispatch) => {
+    return {
+      embed:
+        (attrs: Record<string, Primitive>): Command =>
+        (state, dispatch) => {
+          dispatch?.(
+            state.tr.replaceSelectionWith(type.create(attrs)).scrollIntoView()
+          );
+          return true;
+        },
+      alignEmbedLeft: (): Command => (state, dispatch) => {
+        if (!(state.selection instanceof NodeSelection)) {
+          return false;
+        }
+        const { selection } = state;
         dispatch?.(
-          state.tr.replaceSelectionWith(type.create(attrs)).scrollIntoView()
+          state.tr.setNodeMarkup(selection.from, undefined, {
+            ...selection.node.attrs,
+            layoutClass: "left-50",
+          })
         );
         return true;
-      };
+      },
+      alignEmbedCenter: (): Command => (state, dispatch) => {
+        if (!(state.selection instanceof NodeSelection)) {
+          return false;
+        }
+        const { selection } = state;
+        dispatch?.(
+          state.tr.setNodeMarkup(selection.from, undefined, {
+            ...selection.node.attrs,
+            layoutClass: null,
+          })
+        );
+        return true;
+      },
+      alignEmbedRight: (): Command => (state, dispatch) => {
+        if (!(state.selection instanceof NodeSelection)) {
+          return false;
+        }
+        const { selection } = state;
+        dispatch?.(
+          state.tr.setNodeMarkup(selection.from, undefined, {
+            ...selection.node.attrs,
+            layoutClass: "right-50",
+          })
+        );
+        return true;
+      },
+      alignEmbedFullWidth: (): Command => (state, dispatch) => {
+        if (!(state.selection instanceof NodeSelection)) {
+          return false;
+        }
+        const { selection } = state;
+        let layoutClass: string | null = "full-width";
+        if (selection.node.attrs.layoutClass === layoutClass) {
+          layoutClass = null;
+        }
+        dispatch?.(
+          state.tr.setNodeMarkup(selection.from, undefined, {
+            ...selection.node.attrs,
+            layoutClass,
+          })
+        );
+        return true;
+      },
+      deleteEmbed: (): Command => (state, dispatch) => {
+        dispatch?.(state.tr.deleteSelection());
+        return true;
+      },
+    };
   }
 
   toMarkdown(state: MarkdownSerializerState, node: ProsemirrorNode) {

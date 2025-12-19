@@ -266,6 +266,12 @@ export type SourceMetadata = {
 export type CustomTheme = {
   accent: string;
   accentText: string;
+  /** Border radius for images: "0px" or "8px" */
+  imageBorderRadius?: string;
+  /** Custom Google Font for headings */
+  fontFamilyHeading?: string;
+  /** Custom Google Font for body text */
+  fontFamilyBody?: string;
 };
 
 export type PublicTeam = {

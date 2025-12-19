@@ -16,8 +16,10 @@ import useDictionary from "~/hooks/useDictionary";
 import useEventListener from "~/hooks/useEventListener";
 import useMobile from "~/hooks/useMobile";
 import getAttachmentMenuItems from "../menus/attachment";
+import getButtonMenuItems from "../menus/button";
 import getCodeMenuItems from "../menus/code";
 import getDividerMenuItems from "../menus/divider";
+import getEmbedMenuItems from "../menus/embed";
 import getFormattingMenuItems from "../menus/formatting";
 import getImageMenuItems from "../menus/image";
 import getNoticeMenuItems from "../menus/notice";
@@ -25,6 +27,7 @@ import getReadOnlyMenuItems from "../menus/readOnly";
 import getTableMenuItems from "../menus/table";
 import getTableColMenuItems from "../menus/tableCol";
 import getTableRowMenuItems from "../menus/tableRow";
+import getVideoMenuItems from "../menus/video";
 import { useEditor } from "./EditorContext";
 import { MediaLinkEditor } from "./MediaLinkEditor";
 import FloatingToolbar from "./FloatingToolbar";
@@ -70,9 +73,11 @@ export function SelectionToolbar(props: Props) {
   const isActive = props.isActive || isMobile;
   const isDragging = useIsDragging();
   const [isEditingImgUrl, setIsEditingImgUrl] = React.useState(false);
+  const [isEditingEmbedUrl, setIsEditingEmbedUrl] = React.useState(false);
 
   React.useEffect(() => {
     setIsEditingImgUrl(false);
+    setIsEditingEmbedUrl(false);
   }, [isActive]);
 
   React.useEffect(() => {
@@ -97,6 +102,7 @@ export function SelectionToolbar(props: Props) {
       }
 
       setIsEditingImgUrl(false);
+      setIsEditingEmbedUrl(false);
 
       const { dispatch } = view;
       dispatch(
@@ -148,8 +154,12 @@ export function SelectionToolbar(props: Props) {
   const isAttachmentSelection =
     selection instanceof NodeSelection &&
     selection.node.type.name === "attachment";
+  const isButtonSelection =
+    selection instanceof NodeSelection && selection.node.type.name === "button";
   const isEmbedSelection =
     selection instanceof NodeSelection && selection.node.type.name === "embed";
+  const isVideoSelection =
+    selection instanceof NodeSelection && selection.node.type.name === "video";
   const isCodeSelection = isInCode(state, { onlyBlock: true });
   const isNoticeSelection = isInNotice(state);
 
@@ -174,6 +184,12 @@ export function SelectionToolbar(props: Props) {
     items = getImageMenuItems(state, readOnly, dictionary);
   } else if (isAttachmentSelection) {
     items = getAttachmentMenuItems(state, readOnly, dictionary);
+  } else if (isButtonSelection) {
+    items = getButtonMenuItems(state, readOnly, dictionary);
+  } else if (isVideoSelection) {
+    items = getVideoMenuItems(state, readOnly, dictionary);
+  } else if (isEmbedSelection && !isEditingEmbedUrl) {
+    items = getEmbedMenuItems(state, readOnly, dictionary);
   } else if (isDividerSelection) {
     items = getDividerMenuItems(state, readOnly, dictionary);
   } else if (readOnly) {
@@ -211,14 +227,15 @@ export function SelectionToolbar(props: Props) {
     link && link.from === selection.from && link.to === selection.to;
 
   const isEditingMedia =
-    isEmbedSelection || (isImageSelection && isEditingImgUrl);
+    (isEmbedSelection && isEditingEmbedUrl) ||
+    (isImageSelection && isEditingImgUrl);
 
   return (
     <FloatingToolbar
       align={align}
       active={isActive}
       ref={menuRef}
-      width={showLinkToolbar || isEmbedSelection ? 336 : undefined}
+      width={showLinkToolbar || isEditingMedia ? 336 : undefined}
     >
       {showLinkToolbar ? (
         <LinkEditor
@@ -245,6 +262,7 @@ export function SelectionToolbar(props: Props) {
           {...rest}
           handlers={{
             editImageUrl: () => setIsEditingImgUrl(true),
+            editEmbedUrl: () => setIsEditingEmbedUrl(true),
           }}
         />
       )}

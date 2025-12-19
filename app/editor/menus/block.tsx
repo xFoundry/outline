@@ -21,6 +21,7 @@ import {
   MathIcon,
   DoneIcon,
   EmbedIcon,
+  InputIcon,
 } from "outline-icons";
 import * as React from "react";
 import styled from "styled-components";
@@ -119,6 +120,18 @@ export default function blockMenuItems(
       title: dictionary.file,
       icon: <AttachmentIcon />,
       keywords: "file upload attach",
+    },
+    {
+      name: "createButton",
+      title: dictionary.button,
+      icon: <InputIcon />,
+      keywords: "button link cta action call",
+      attrs: {
+        href: "",
+        label: "Button",
+        variant: "primary",
+        alignment: "center",
+      },
     },
     {
       name: "table",

@@ -523,6 +523,10 @@ iframe.embed {
     max-width: 100%;
   }
 
+  img {
+    border-radius: ${props.theme.imageBorderRadius};
+  }
+
   video {
     pointer-events: initial;
     ${videoStyle}
@@ -639,6 +643,103 @@ iframe.embed {
     max-height: min(450px, 50vh);
     object-fit: cover;
     object-position: center;
+  }
+}
+
+.video-right-50 {
+  float: right;
+  margin-left: 2em;
+  margin-bottom: 1em;
+  clear: initial;
+
+  @media (max-width: 736px) {
+    float: none;
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 1em;
+  }
+}
+
+.video-left-50 {
+  float: left;
+  margin-right: 2em;
+  margin-bottom: 1em;
+  clear: initial;
+
+  @media (max-width: 736px) {
+    float: none;
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 1em;
+  }
+}
+
+.video-full-width {
+  width: initial;
+  max-width: 100vw;
+  clear: both;
+  position: initial;
+  transform: translateX(calc(50% + var(--container-width) * -0.5 + var(--full-width-transform-offset)));
+
+  video {
+    max-width: 100vw;
+    max-height: min(450px, 50vh);
+    object-fit: cover;
+    object-position: center;
+  }
+}
+
+.embed-wrapper {
+  line-height: 0;
+  text-align: center;
+  max-width: 100%;
+  clear: both;
+  position: relative;
+  z-index: 1;
+}
+
+.embed-right-50 {
+  float: right;
+  margin-left: 2em;
+  margin-bottom: 1em;
+  clear: initial;
+
+  @media (max-width: 736px) {
+    float: none;
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 1em;
+  }
+}
+
+.embed-left-50 {
+  float: left;
+  margin-right: 2em;
+  margin-bottom: 1em;
+  clear: initial;
+
+  @media (max-width: 736px) {
+    float: none;
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 1em;
+  }
+}
+
+.embed-full-width {
+  width: initial;
+  max-width: 100vw;
+  clear: both;
+  position: initial;
+  transform: translateX(calc(50% + var(--container-width) * -0.5 + var(--full-width-transform-offset)));
+
+  iframe.embed {
+    max-width: 100vw;
+    height: 450px;
   }
 }
 
@@ -909,6 +1010,8 @@ h3,
 h4,
 h5,
 h6 {
+  font-family: ${props.theme.fontFamilyHeading};
+
   &:hover {
     .heading-anchor {
       opacity: 0.75 !important;
