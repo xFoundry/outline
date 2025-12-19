@@ -4,7 +4,6 @@ import * as React from "react";
 import styled from "styled-components";
 import { Primitive } from "utility-types";
 import { sanitizeUrl } from "../../utils/urls";
-import toggleWrap from "../commands/toggleWrap";
 import { MarkdownSerializerState } from "../lib/markdown/serializer";
 import { ComponentProps } from "../types";
 import Node from "./Node";
@@ -126,8 +125,14 @@ export default class Button extends Node {
 
   commands({ type }: { type: NodeType }) {
     return {
-      createButton: (attrs: Record<string, Primitive>) =>
-        toggleWrap(type, attrs),
+      createButton:
+        (attrs: Record<string, Primitive>): Command =>
+        (state, dispatch) => {
+          dispatch?.(
+            state.tr.replaceSelectionWith(type.create(attrs)).scrollIntoView()
+          );
+          return true;
+        },
       setButtonVariant:
         (attrs: { variant: ButtonVariant }): Command =>
         (state, dispatch) => {

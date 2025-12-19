@@ -18,6 +18,8 @@ type Props = {
  * A dropdown component for selecting Google Fonts.
  * Shows a curated list of fonts based on the type (heading or body).
  */
+const SYSTEM_DEFAULT = "system-default";
+
 const InputFontSelect: React.FC<Props> = ({ type, value, onChange, label }) => {
   const { t } = useTranslation();
   const fonts = GOOGLE_FONTS[type];
@@ -27,7 +29,7 @@ const InputFontSelect: React.FC<Props> = ({ type, value, onChange, label }) => {
       {
         type: "item" as const,
         label: t("System default"),
-        value: "",
+        value: SYSTEM_DEFAULT,
       },
       {
         type: "separator" as const,
@@ -43,7 +45,7 @@ const InputFontSelect: React.FC<Props> = ({ type, value, onChange, label }) => {
 
   const handleChange = React.useCallback(
     (val: string) => {
-      onChange(val === "" ? null : val);
+      onChange(val === SYSTEM_DEFAULT ? null : val);
     },
     [onChange]
   );
@@ -51,7 +53,7 @@ const InputFontSelect: React.FC<Props> = ({ type, value, onChange, label }) => {
   return (
     <InputSelect
       options={options}
-      value={value ?? ""}
+      value={value ?? SYSTEM_DEFAULT}
       onChange={handleChange}
       label={label}
       hideLabel
