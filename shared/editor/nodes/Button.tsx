@@ -3,6 +3,7 @@ import { Command, NodeSelection } from "prosemirror-state";
 import * as React from "react";
 import styled from "styled-components";
 import { Primitive } from "utility-types";
+import { s } from "../../styles";
 import { sanitizeUrl } from "../../utils/urls";
 import { MarkdownSerializerState } from "../lib/markdown/serializer";
 import { ComponentProps } from "../types";
@@ -86,7 +87,7 @@ export default class Button extends Node {
     };
 
   component = (props: ComponentProps) => {
-    const { isSelected, isEditable, theme, node } = props;
+    const { isSelected, isEditable, node } = props;
     const { href, label, variant, alignment } = node.attrs as {
       href: string;
       label: string;
@@ -112,7 +113,6 @@ export default class Button extends Node {
           href={sanitizeUrl(href)}
           onClick={handleClick}
           $variant={variant}
-          $theme={theme}
           target="_blank"
           rel="noopener noreferrer"
           role="button"
@@ -258,7 +258,6 @@ const ButtonWrapper = styled.div<{
 
 const StyledButton = styled.a<{
   $variant: ButtonVariant;
-  $theme: ComponentProps["theme"];
 }>`
   display: inline-block;
   padding: 10px 20px;
@@ -274,28 +273,28 @@ const StyledButton = styled.a<{
     switch (props.$variant) {
       case "secondary":
         return `
-          background: ${props.$theme.buttonNeutralBackground};
-          color: ${props.$theme.text};
+          background: ${props.theme.buttonNeutralBackground};
+          color: ${props.theme.text};
           box-shadow: rgba(0, 0, 0, 0.07) 0px 1px 2px,
-                      ${props.$theme.buttonNeutralBorder} 0 0 0 1px inset;
+                      ${props.theme.buttonNeutralBorder} 0 0 0 1px inset;
           &:hover {
-            background: ${props.$theme.listItemHoverBackground};
+            background: ${props.theme.listItemHoverBackground};
           }
         `;
       case "outline":
         return `
           background: transparent;
-          color: ${props.$theme.accent};
-          border: 2px solid ${props.$theme.accent};
+          color: ${props.theme.accent};
+          border: 2px solid ${props.theme.accent};
           &:hover {
-            background: ${props.$theme.accent}11;
+            background: ${props.theme.accent}11;
           }
         `;
       case "primary":
       default:
         return `
-          background: ${props.$theme.accent};
-          color: ${props.$theme.accentText};
+          background: ${props.theme.accent};
+          color: ${props.theme.accentText};
           &:hover {
             filter: brightness(0.9);
           }
@@ -304,7 +303,7 @@ const StyledButton = styled.a<{
   }}
 
   &:focus-visible {
-    outline: 2px solid ${(props) => props.$theme.accent};
+    outline: 2px solid ${s("accent")};
     outline-offset: 2px;
   }
 `;
