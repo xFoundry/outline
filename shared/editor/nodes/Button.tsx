@@ -1,7 +1,7 @@
 import { NodeSpec, NodeType, Node as ProsemirrorNode } from "prosemirror-model";
 import { Command, NodeSelection } from "prosemirror-state";
 import * as React from "react";
-import styled, { css } from "styled-components";
+import styled from "styled-components";
 import { Primitive } from "utility-types";
 import { s } from "../../styles";
 import { sanitizeUrl } from "../../utils/urls";
@@ -109,10 +109,9 @@ export default class Button extends Node {
         onMouseDown={this.handleSelect(props)}
       >
         <StyledButton
-          as="a"
           href={sanitizeUrl(href)}
           onClick={handleClick}
-          $variant={variant}
+          data-variant={variant}
           target="_blank"
           rel="noopener noreferrer"
           role="button"
@@ -247,18 +246,13 @@ const ButtonWrapper = styled.div<{
         ? "flex-end"
         : "center"};
 
-  ${(props) =>
-    props.$isSelected &&
-    css`
-      outline: 2px solid ${props.theme.selected};
-      outline-offset: 2px;
-      border-radius: 8px;
-    `}
+  outline: ${(props) =>
+    props.$isSelected ? `2px solid ${s("selected")(props)}` : "none"};
+  outline-offset: ${(props) => (props.$isSelected ? "2px" : "0")};
+  border-radius: ${(props) => (props.$isSelected ? "8px" : "0")};
 `;
 
-const StyledButton = styled.a<{
-  $variant: ButtonVariant;
-}>`
+const StyledButton = styled.a`
   display: inline-block;
   padding: 10px 20px;
   border-radius: 6px;
@@ -269,39 +263,39 @@ const StyledButton = styled.a<{
   transition: all 150ms ease-in-out;
   border: none;
 
-  ${(props) => {
-    switch (props.$variant) {
-      case "secondary":
-        return css`
-          background: ${props.theme.buttonNeutralBackground};
-          color: ${props.theme.text};
-          box-shadow:
-            rgba(0, 0, 0, 0.07) 0px 1px 2px,
-            ${props.theme.buttonNeutralBorder} 0 0 0 1px inset;
-          &:hover {
-            background: ${props.theme.listItemHoverBackground};
-          }
-        `;
-      case "outline":
-        return css`
-          background: transparent;
-          color: ${props.theme.accent};
-          border: 2px solid ${props.theme.accent};
-          &:hover {
-            background: ${props.theme.accent}11;
-          }
-        `;
-      case "primary":
-      default:
-        return css`
-          background: ${props.theme.accent};
-          color: ${props.theme.accentText};
-          &:hover {
-            filter: brightness(0.9);
-          }
-        `;
+  /* Primary variant (default) */
+  background: ${s("accent")};
+  color: ${s("accentText")};
+
+  &:hover {
+    filter: brightness(0.9);
+  }
+
+  /* Secondary variant */
+  &[data-variant="secondary"] {
+    background: ${s("buttonNeutralBackground")};
+    color: ${s("text")};
+    box-shadow:
+      rgba(0, 0, 0, 0.07) 0px 1px 2px,
+      ${s("buttonNeutralBorder")} 0 0 0 1px inset;
+    filter: none;
+
+    &:hover {
+      background: ${s("listItemHoverBackground")};
     }
-  }}
+  }
+
+  /* Outline variant */
+  &[data-variant="outline"] {
+    background: transparent;
+    color: ${s("accent")};
+    border: 2px solid ${s("accent")};
+    filter: none;
+
+    &:hover {
+      background: color-mix(in srgb, ${s("accent")} 10%, transparent);
+    }
+  }
 
   &:focus-visible {
     outline: 2px solid ${s("accent")};
