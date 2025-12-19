@@ -105,7 +105,7 @@ export default class Button extends Node {
     return (
       <ButtonWrapper
         $alignment={alignment}
-        $isSelected={isSelected}
+        data-selected={isSelected}
         onMouseDown={this.handleSelect(props)}
       >
         <StyledButton
@@ -234,7 +234,6 @@ export default class Button extends Node {
 
 const ButtonWrapper = styled.div<{
   $alignment: ButtonAlignment;
-  $isSelected: boolean;
 }>`
   display: flex;
   margin: 0.75em 0;
@@ -246,10 +245,11 @@ const ButtonWrapper = styled.div<{
         ? "flex-end"
         : "center"};
 
-  outline: ${(props) =>
-    props.$isSelected ? `2px solid ${s("selected")(props)}` : "none"};
-  outline-offset: ${(props) => (props.$isSelected ? "2px" : "0")};
-  border-radius: ${(props) => (props.$isSelected ? "8px" : "0")};
+  &[data-selected="true"] {
+    outline: 2px solid ${s("selected")};
+    outline-offset: 2px;
+    border-radius: 8px;
+  }
 `;
 
 const StyledButton = styled.a`
