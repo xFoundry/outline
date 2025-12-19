@@ -1,7 +1,7 @@
 import { NodeSpec, NodeType, Node as ProsemirrorNode } from "prosemirror-model";
 import { Command, NodeSelection } from "prosemirror-state";
 import * as React from "react";
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 import { Primitive } from "utility-types";
 import { s } from "../../styles";
 import { sanitizeUrl } from "../../utils/urls";
@@ -249,11 +249,11 @@ const ButtonWrapper = styled.div<{
 
   ${(props) =>
     props.$isSelected &&
-    `
-    outline: 2px solid ${props.theme.selected};
-    outline-offset: 2px;
-    border-radius: 8px;
-  `}
+    css`
+      outline: 2px solid ${props.theme.selected};
+      outline-offset: 2px;
+      border-radius: 8px;
+    `}
 `;
 
 const StyledButton = styled.a<{
@@ -272,17 +272,18 @@ const StyledButton = styled.a<{
   ${(props) => {
     switch (props.$variant) {
       case "secondary":
-        return `
+        return css`
           background: ${props.theme.buttonNeutralBackground};
           color: ${props.theme.text};
-          box-shadow: rgba(0, 0, 0, 0.07) 0px 1px 2px,
-                      ${props.theme.buttonNeutralBorder} 0 0 0 1px inset;
+          box-shadow:
+            rgba(0, 0, 0, 0.07) 0px 1px 2px,
+            ${props.theme.buttonNeutralBorder} 0 0 0 1px inset;
           &:hover {
             background: ${props.theme.listItemHoverBackground};
           }
         `;
       case "outline":
-        return `
+        return css`
           background: transparent;
           color: ${props.theme.accent};
           border: 2px solid ${props.theme.accent};
@@ -292,7 +293,7 @@ const StyledButton = styled.a<{
         `;
       case "primary":
       default:
-        return `
+        return css`
           background: ${props.theme.accent};
           color: ${props.theme.accentText};
           &:hover {
