@@ -205,6 +205,13 @@ export function SelectionToolbar(props: Props) {
     items = getFormattingMenuItems(state, isTemplate, dictionary);
   }
 
+  // Handler names that are not commands but should be allowed through the filter
+  const handlerNames = new Set([
+    "editImageUrl",
+    "editEmbedUrl",
+    "editButtonUrl",
+  ]);
+
   // Some extensions may be disabled, remove corresponding items
   items = items.filter((item) => {
     if (item.name === "separator") {
@@ -212,6 +219,10 @@ export function SelectionToolbar(props: Props) {
     }
     if (item.name === "dimensions") {
       return item.visible ?? false;
+    }
+    // Allow handler items through even if they're not commands
+    if (item.name && handlerNames.has(item.name)) {
+      return true;
     }
     if (item.name && !commands[item.name]) {
       return false;
