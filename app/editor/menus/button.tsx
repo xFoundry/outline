@@ -46,6 +46,7 @@ export default function buttonMenuItems(
       tooltip: "Primary style",
       attrs: { variant: "primary" },
       active: isNodeActive(schema.nodes.button, { variant: "primary" }),
+      skipIcon: true,
     },
     {
       name: "setButtonVariant",
@@ -53,6 +54,7 @@ export default function buttonMenuItems(
       tooltip: "Secondary style",
       attrs: { variant: "secondary" },
       active: isNodeActive(schema.nodes.button, { variant: "secondary" }),
+      skipIcon: true,
     },
     {
       name: "setButtonVariant",
@@ -60,6 +62,7 @@ export default function buttonMenuItems(
       tooltip: "Outline style",
       attrs: { variant: "outline" },
       active: isNodeActive(schema.nodes.button, { variant: "outline" }),
+      skipIcon: true,
     },
     {
       name: "separator",

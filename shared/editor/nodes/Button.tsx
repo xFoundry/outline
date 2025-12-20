@@ -45,10 +45,10 @@ export default class Button extends Node {
         {
           tag: "div.editor-button-wrapper",
           getAttrs: (dom: HTMLDivElement) => {
-            const link = dom.querySelector("a");
+            const button = dom.querySelector("button");
             return {
-              href: link?.getAttribute("href") || "",
-              label: link?.textContent || "Button",
+              href: dom.dataset.href || "",
+              label: button?.textContent || "Button",
               variant: dom.dataset.variant || "primary",
               alignment: dom.dataset.alignment || "center",
             };
@@ -61,13 +61,13 @@ export default class Button extends Node {
           class: `editor-button-wrapper editor-button-${node.attrs.alignment}`,
           "data-variant": node.attrs.variant,
           "data-alignment": node.attrs.alignment,
+          "data-href": sanitizeUrl(node.attrs.href),
         },
         [
-          "a",
+          "button",
           {
             class: `editor-button editor-button-${node.attrs.variant}`,
-            href: sanitizeUrl(node.attrs.href),
-            role: "button",
+            type: "button",
             contentEditable: "false",
           },
           node.attrs.label,
@@ -95,10 +95,12 @@ export default class Button extends Node {
       alignment: ButtonAlignment;
     };
 
-    const handleClick = (e: React.MouseEvent) => {
+    const handleButtonClick = (e: React.MouseEvent) => {
       if (isEditable) {
         e.preventDefault();
         e.stopPropagation();
+      } else if (href) {
+        window.open(sanitizeUrl(href), "_blank", "noopener,noreferrer");
       }
     };
 
@@ -109,12 +111,9 @@ export default class Button extends Node {
         onMouseDown={this.handleSelect(props)}
       >
         <StyledButton
-          href={sanitizeUrl(href)}
-          onClick={handleClick}
+          type="button"
+          onClick={handleButtonClick}
           data-variant={variant}
-          target="_blank"
-          rel="noopener noreferrer"
-          role="button"
         >
           {label}
         </StyledButton>
@@ -252,12 +251,13 @@ const ButtonWrapper = styled.div<{
   }
 `;
 
-const StyledButton = styled.a`
+const StyledButton = styled.button`
   display: inline-block;
   padding: 10px 20px;
   border-radius: 6px;
   font-size: 14px;
   font-weight: 500;
+  font-family: inherit;
   text-decoration: none;
   cursor: var(--pointer);
   transition: all 150ms ease-in-out;
