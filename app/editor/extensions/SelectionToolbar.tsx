@@ -73,7 +73,9 @@ export default class SelectionToolbarExtension extends Extension {
 
     if (
       selection instanceof NodeSelection &&
-      ["image", "attachment", "embed"].includes(selection.node.type.name)
+      ["image", "attachment", "embed", "button", "video"].includes(
+        selection.node.type.name
+      )
     ) {
       return selection;
     }
