@@ -500,12 +500,6 @@ router.post(
         return;
       }
 
-      if (requiresSession && !sessionIdHeader) {
-        ctx.status = 400;
-        ctx.body = { error: "Missing Mcp-Session-Id header" };
-        return;
-      }
-
       if (requiresSession && sessionIdHeader) {
         const session = getSessionInfo(sessionIdHeader);
         if (!session) {
@@ -616,13 +610,7 @@ router.post(
       return;
     }
 
-    if (!isInitialize) {
-      if (!sessionIdHeader) {
-        ctx.status = 400;
-        ctx.body = { error: "Missing Mcp-Session-Id header" };
-        return;
-      }
-
+    if (!isInitialize && sessionIdHeader) {
       const session = getSessionInfo(sessionIdHeader);
       if (!session) {
         ctx.status = 404;
@@ -675,21 +663,18 @@ router.get(
     const protocolVersionHeader = ctx.get("MCP-Protocol-Version");
     const sessionIdHeader = ctx.get("Mcp-Session-Id");
 
-    if (!protocolVersionHeader) {
-      ctx.status = 400;
-      ctx.body = { error: "Missing MCP-Protocol-Version header" };
-      return;
-    }
-
-    if (!isValidProtocolVersion(protocolVersionHeader)) {
-      ctx.status = 400;
-      ctx.body = { error: "Unsupported MCP-Protocol-Version header" };
+    if (
+      !protocolVersionHeader ||
+      !isValidProtocolVersion(protocolVersionHeader)
+    ) {
+      ctx.status = 405;
+      ctx.body = "";
       return;
     }
 
     if (!sessionIdHeader) {
-      ctx.status = 400;
-      ctx.body = { error: "Missing Mcp-Session-Id header" };
+      ctx.status = 405;
+      ctx.body = "";
       return;
     }
 
