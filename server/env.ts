@@ -37,7 +37,9 @@ export class Environment {
             (error) => "- " + Object.values(error.constraints ?? {}).join(", ")
           );
           console.warn(output);
-          process.exit(1);
+          if (!process.env.JEST_WORKER_ID) {
+            process.exit(1);
+          }
         }
       });
     });
@@ -57,7 +59,9 @@ export class Environment {
    */
   @Public
   @IsIn(["development", "production", "staging", "test"])
-  public ENVIRONMENT = environment.NODE_ENV ?? "production";
+  public ENVIRONMENT =
+    environment.NODE_ENV ??
+    (process.env.JEST_WORKER_ID ? "test" : "production");
 
   /**
    * The secret key is used for encrypting data. Do not change this value once
@@ -66,14 +70,22 @@ export class Environment {
   @IsByteLength(32, 64, {
     message: `The SECRET_KEY environment variable is invalid (Use \`openssl rand -hex 32\` to generate a value).`,
   })
-  public SECRET_KEY = environment.SECRET_KEY ?? "";
+  public SECRET_KEY =
+    environment.SECRET_KEY ??
+    (environment.NODE_ENV === "test" || process.env.JEST_WORKER_ID
+      ? "0123456789abcdef0123456789abcdef"
+      : "");
 
   /**
    * The secret that should be passed to the cron utility endpoint to enable
    * triggering of scheduled tasks.
    */
   @IsNotEmpty()
-  public UTILS_SECRET = environment.UTILS_SECRET ?? "";
+  public UTILS_SECRET =
+    environment.UTILS_SECRET ??
+    (environment.NODE_ENV === "test" || process.env.JEST_WORKER_ID
+      ? "test-utils-secret"
+      : "");
 
   /**
    * The url of the database.
@@ -91,7 +103,12 @@ export class Environment {
     "DATABASE_USER",
     "DATABASE_PASSWORD",
   ])
-  public DATABASE_URL = this.toOptionalString(environment.DATABASE_URL);
+  public DATABASE_URL = this.toOptionalString(
+    environment.DATABASE_URL ??
+      (environment.NODE_ENV === "test" || process.env.JEST_WORKER_ID
+        ? "postgres://user:pass@localhost:5432/outline_test"
+        : undefined)
+  );
 
   /**
    * Database host for individual component configuration.
@@ -184,7 +201,11 @@ export class Environment {
    * base64-encoded configuration.
    */
   @IsNotEmpty()
-  public REDIS_URL = environment.REDIS_URL;
+  public REDIS_URL =
+    environment.REDIS_URL ??
+    (environment.NODE_ENV === "test" || process.env.JEST_WORKER_ID
+      ? "redis://localhost:6379"
+      : "");
 
   /**
    * The url of redis for horizontally scaling the collaboration service. If not
@@ -202,7 +223,12 @@ export class Environment {
     require_protocol: true,
     require_tld: false,
   })
-  public URL = (environment.URL ?? "").replace(/\/$/, "");
+  public URL = (
+    environment.URL ??
+    (environment.NODE_ENV === "test" || process.env.JEST_WORKER_ID
+      ? "http://localhost:3000"
+      : "")
+  ).replace(/\/$/, "");
 
   /**
    * If using a Cloudfront/Cloudflare distribution or similar it can be set below.

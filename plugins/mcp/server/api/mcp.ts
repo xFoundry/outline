@@ -10,20 +10,76 @@ import env from "../env";
 
 const router = new Router();
 
+const DEFAULT_PROTOCOL_VERSION = "2025-06-18";
+const SUPPORTED_PROTOCOL_VERSIONS = new Set([DEFAULT_PROTOCOL_VERSION]);
+
+type SessionInfo = {
+  protocolVersion: string;
+  expiresAt: number;
+};
+
+const sessionStore = new Map<string, SessionInfo>();
+const sessionTtlMs = env.MCP_SESSION_TTL_MINUTES * 60 * 1000;
+
+function parseAllowedOrigins(): string[] {
+  if (!env.MCP_ALLOWED_ORIGINS) {
+    return [];
+  }
+
+  return env.MCP_ALLOWED_ORIGINS.split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+    .map((origin) => {
+      if (origin.startsWith("http://") || origin.startsWith("https://")) {
+        try {
+          return new URL(origin).origin;
+        } catch {
+          return origin;
+        }
+      }
+      return origin;
+    });
+}
+
+function isOriginAllowed(origin: string | undefined, allowedOrigins: string[]) {
+  if (!origin) {
+    return true;
+  }
+
+  if (allowedOrigins.length === 0) {
+    return false;
+  }
+
+  if (allowedOrigins.includes("*")) {
+    return true;
+  }
+
+  return allowedOrigins.includes(origin);
+}
+
 /**
  * CORS middleware for MCP endpoints
- * Allows cross-origin requests from any origin (or configure specific origins)
+ * Validates allowed origins to prevent DNS rebinding attacks.
  */
 router.all(/^\/?mcp(\/.*)?$/, async (ctx, next) => {
-  // Allow requests from any origin for MCP (or set specific allowed origins)
-  const allowedOrigin = ctx.get("Origin") || "*";
+  const origin = ctx.get("Origin");
+  const allowedOrigins = parseAllowedOrigins();
 
-  ctx.set("Access-Control-Allow-Origin", allowedOrigin);
+  if (!isOriginAllowed(origin, allowedOrigins)) {
+    ctx.status = 403;
+    ctx.body = { error: "Origin not allowed" };
+    return;
+  }
+
+  if (origin) {
+    ctx.set("Access-Control-Allow-Origin", origin);
+  }
   ctx.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   ctx.set(
     "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, X-Requested-With"
+    "Content-Type, Authorization, X-Requested-With, Mcp-Session-Id, MCP-Protocol-Version"
   );
+  ctx.set("Access-Control-Expose-Headers", "Mcp-Session-Id");
   ctx.set("Access-Control-Allow-Credentials", "true");
   ctx.set("Access-Control-Max-Age", "86400");
 
@@ -56,7 +112,7 @@ interface JsonRpcResponse {
 }
 
 // MCP Protocol version
-const MCP_PROTOCOL_VERSION = "2024-11-05";
+const MCP_PROTOCOL_VERSION = DEFAULT_PROTOCOL_VERSION;
 
 // Server info
 const SERVER_INFO = {
@@ -67,64 +123,150 @@ const SERVER_INFO = {
 /**
  * Build tool definitions for MCP protocol
  */
-function buildToolDefinitions() {
-  return Object.entries(allTools).map(([name, tool]) => ({
-    name,
-    description: tool.description,
-    inputSchema: {
-      type: "object" as const,
-      properties: Object.fromEntries(
-        Object.entries(tool.inputSchema.shape).map(([key, schema]) => {
-          const zodSchema = schema as z.ZodTypeAny;
-          return [
-            key,
-            {
-              type: getJsonSchemaType(zodSchema),
-              description: zodSchema.description,
-            },
-          ];
-        })
-      ),
-      required: Object.entries(tool.inputSchema.shape)
-        .filter(([_, schema]) => {
-          const zodSchema = schema as z.ZodTypeAny;
-          // Check for both .optional() and .default() - neither should be required
+function unwrapZodSchema(schema: z.ZodTypeAny) {
+  let current = schema;
+  let defaultValue: unknown = undefined;
+
+  while (
+    current._def.typeName === "ZodOptional" ||
+    current._def.typeName === "ZodDefault" ||
+    current._def.typeName === "ZodNullable"
+  ) {
+    if (
+      current._def.typeName === "ZodDefault" &&
+      current._def.defaultValue !== undefined
+    ) {
+      defaultValue = current._def.defaultValue();
+    }
+    current = current._def.innerType;
+  }
+
+  return { schema: current, defaultValue };
+}
+
+function zodToJsonSchema(schema: z.ZodTypeAny): Record<string, unknown> {
+  const { schema: unwrapped, defaultValue } = unwrapZodSchema(schema);
+  const typeName = unwrapped._def.typeName;
+  const jsonSchema: Record<string, unknown> = {};
+
+  switch (typeName) {
+    case "ZodString": {
+      jsonSchema.type = "string";
+      if (unwrapped.description) {
+        jsonSchema.description = unwrapped.description;
+      }
+      const checks = unwrapped._def.checks ?? [];
+      for (const check of checks) {
+        if (check.kind === "min") {
+          jsonSchema.minLength = check.value;
+        }
+        if (check.kind === "max") {
+          jsonSchema.maxLength = check.value;
+        }
+      }
+      break;
+    }
+    case "ZodNumber": {
+      jsonSchema.type = "number";
+      if (unwrapped.description) {
+        jsonSchema.description = unwrapped.description;
+      }
+      const checks = unwrapped._def.checks ?? [];
+      for (const check of checks) {
+        if (check.kind === "min") {
+          jsonSchema.minimum = check.value;
+        }
+        if (check.kind === "max") {
+          jsonSchema.maximum = check.value;
+        }
+      }
+      break;
+    }
+    case "ZodBoolean": {
+      jsonSchema.type = "boolean";
+      if (unwrapped.description) {
+        jsonSchema.description = unwrapped.description;
+      }
+      break;
+    }
+    case "ZodArray": {
+      jsonSchema.type = "array";
+      if (unwrapped.description) {
+        jsonSchema.description = unwrapped.description;
+      }
+      jsonSchema.items = zodToJsonSchema(unwrapped._def.type);
+      break;
+    }
+    case "ZodEnum": {
+      jsonSchema.type = "string";
+      jsonSchema.enum = unwrapped._def.values;
+      if (unwrapped.description) {
+        jsonSchema.description = unwrapped.description;
+      }
+      break;
+    }
+    case "ZodObject": {
+      jsonSchema.type = "object";
+      const shape = unwrapped.shape;
+      jsonSchema.properties = Object.fromEntries(
+        Object.entries(shape).map(([key, value]) => [
+          key,
+          zodToJsonSchema(value),
+        ])
+      );
+      jsonSchema.required = Object.entries(shape)
+        .filter(([_, value]) => {
+          const zodSchema = value as z.ZodTypeAny;
           const isOptional = zodSchema.isOptional();
           const hasDefault =
             "_def" in zodSchema && zodSchema._def.defaultValue !== undefined;
           return !isOptional && !hasDefault;
         })
-        .map(([key]) => key),
-    },
-  }));
+        .map(([key]) => key);
+      break;
+    }
+    default: {
+      jsonSchema.type = "string";
+      if (unwrapped.description) {
+        jsonSchema.description = unwrapped.description;
+      }
+    }
+  }
+
+  if (defaultValue !== undefined) {
+    jsonSchema.default = defaultValue;
+  }
+
+  return jsonSchema;
 }
 
 /**
- * Convert Zod type to JSON Schema type
+ * Build tool definitions for MCP protocol
  */
-function getJsonSchemaType(schema: z.ZodTypeAny): string {
-  const typeName = schema._def.typeName;
+function buildToolDefinitions() {
+  return Object.entries(allTools).map(([name, tool]) => ({
+    name,
+    description: tool.description,
+    inputSchema: zodToJsonSchema(tool.inputSchema),
+  }));
+}
 
-  if (typeName === "ZodOptional" || typeName === "ZodDefault") {
-    return getJsonSchemaType(schema._def.innerType);
+function isValidProtocolVersion(version: string | undefined) {
+  return !!version && SUPPORTED_PROTOCOL_VERSIONS.has(version);
+}
+
+function getSessionInfo(sessionId: string) {
+  const session = sessionStore.get(sessionId);
+  if (!session) {
+    return null;
   }
 
-  switch (typeName) {
-    case "ZodString":
-      return "string";
-    case "ZodNumber":
-      return "number";
-    case "ZodBoolean":
-      return "boolean";
-    case "ZodArray":
-      return "array";
-    case "ZodObject":
-      return "object";
-    case "ZodEnum":
-      return "string";
-    default:
-      return "string";
+  if (session.expiresAt <= Date.now()) {
+    sessionStore.delete(sessionId);
+    return null;
   }
+
+  return session;
 }
 
 /**
@@ -136,15 +278,34 @@ async function handleMcpRequest(
   ctx: APIContext
 ): Promise<JsonRpcResponse | null> {
   const { user } = ctx.state.auth;
+  const isNotification = request.id === undefined || request.id === null;
 
   try {
     switch (request.method) {
       case "initialize": {
+        const params = request.params as {
+          protocolVersion?: string;
+        };
+        const requestedVersion = params?.protocolVersion;
+        if (!isValidProtocolVersion(requestedVersion)) {
+          return {
+            jsonrpc: "2.0",
+            id: request.id ?? null,
+            error: {
+              code: -32602,
+              message: `Unsupported protocolVersion: ${requestedVersion ?? "none"}`,
+            },
+          };
+        }
+
+        if (isNotification) {
+          return null;
+        }
         return {
           jsonrpc: "2.0",
           id: request.id,
           result: {
-            protocolVersion: MCP_PROTOCOL_VERSION,
+            protocolVersion: requestedVersion ?? MCP_PROTOCOL_VERSION,
             capabilities: {
               tools: {},
             },
@@ -154,6 +315,9 @@ async function handleMcpRequest(
       }
 
       case "tools/list": {
+        if (isNotification) {
+          return null;
+        }
         return {
           jsonrpc: "2.0",
           id: request.id,
@@ -172,7 +336,7 @@ async function handleMcpRequest(
         if (!params?.name) {
           return {
             jsonrpc: "2.0",
-            id: request.id,
+            id: request.id ?? null,
             error: {
               code: -32602,
               message: "Invalid params: missing tool name",
@@ -186,7 +350,7 @@ async function handleMcpRequest(
         if (!tool) {
           return {
             jsonrpc: "2.0",
-            id: request.id,
+            id: request.id ?? null,
             error: {
               code: -32601,
               message: `Unknown tool: ${params.name}`,
@@ -199,7 +363,7 @@ async function handleMcpRequest(
         if (!parseResult.success) {
           return {
             jsonrpc: "2.0",
-            id: request.id,
+            id: request.id ?? null,
             error: {
               code: -32602,
               message: `Invalid tool arguments: ${parseResult.error.message}`,
@@ -216,6 +380,9 @@ async function handleMcpRequest(
         // @ts-expect-error -- dynamic tool dispatch requires type coercion
         const result = await tool.handler(parseResult.data, user, ctx);
 
+        if (isNotification) {
+          return null;
+        }
         return {
           jsonrpc: "2.0",
           id: request.id,
@@ -224,6 +391,9 @@ async function handleMcpRequest(
       }
 
       case "ping": {
+        if (isNotification) {
+          return null;
+        }
         return {
           jsonrpc: "2.0",
           id: request.id,
@@ -231,13 +401,15 @@ async function handleMcpRequest(
         };
       }
 
-      case "notifications/initialized": {
-        // Client notification that initialization is complete
-        // JSON-RPC 2.0 spec: servers MUST NOT reply to notifications
+      case "notifications/initialized":
+      case "initialized": {
         return null;
       }
 
       default: {
+        if (isNotification) {
+          return null;
+        }
         return {
           jsonrpc: "2.0",
           id: request.id,
@@ -254,6 +426,9 @@ async function handleMcpRequest(
       userId: user?.id,
     });
 
+    if (isNotification) {
+      return null;
+    }
     return {
       jsonrpc: "2.0",
       id: request.id,
@@ -268,6 +443,7 @@ async function handleMcpRequest(
 /**
  * MCP endpoint - handles JSON-RPC 2.0 requests
  * Supports both single requests and batch requests
+ * Compatible with Streamable HTTP transport (2025-06-18 spec)
  */
 router.post(
   "mcp",
@@ -282,7 +458,13 @@ router.post(
       return;
     }
 
+    // Set content type for JSON-RPC responses
+    ctx.set("Content-Type", "application/json");
+
     const body = ctx.request.body;
+
+    const protocolVersionHeader = ctx.get("MCP-Protocol-Version");
+    const sessionIdHeader = ctx.get("Mcp-Session-Id");
 
     // Handle batch requests
     if (Array.isArray(body)) {
@@ -297,6 +479,41 @@ router.post(
           },
         };
         return;
+      }
+
+      const includesInitialize = body.some(
+        (req: JsonRpcRequest) => req?.method === "initialize"
+      );
+      const requiresSession = body.some(
+        (req: JsonRpcRequest) => req?.method !== "initialize"
+      );
+
+      if (requiresSession && !protocolVersionHeader) {
+        ctx.status = 400;
+        ctx.body = { error: "Missing MCP-Protocol-Version header" };
+        return;
+      }
+
+      if (requiresSession && !isValidProtocolVersion(protocolVersionHeader)) {
+        ctx.status = 400;
+        ctx.body = { error: "Unsupported MCP-Protocol-Version header" };
+        return;
+      }
+
+      if (requiresSession && !sessionIdHeader) {
+        ctx.status = 400;
+        ctx.body = { error: "Missing Mcp-Session-Id header" };
+        return;
+      }
+
+      if (requiresSession && sessionIdHeader) {
+        const session = getSessionInfo(sessionIdHeader);
+        if (!session) {
+          ctx.status = 404;
+          ctx.body = { error: "MCP session not found" };
+          return;
+        }
+        session.expiresAt = Date.now() + sessionTtlMs;
       }
 
       const responses = await Promise.all(
@@ -330,6 +547,29 @@ router.post(
       const filteredResponses = responses.filter((r) => r !== null);
       if (filteredResponses.length > 0) {
         ctx.body = filteredResponses;
+      } else {
+        // All requests were notifications
+        ctx.status = 202;
+        ctx.body = "";
+      }
+      if (includesInitialize && filteredResponses.length > 0) {
+        const initializeResponse = filteredResponses.find(
+          (response) => response.result?.protocolVersion
+        );
+        if (initializeResponse?.result) {
+          const sessionId = randomUUID();
+          sessionStore.set(sessionId, {
+            protocolVersion:
+              (
+                initializeResponse.result as {
+                  protocolVersion?: string;
+                }
+              ).protocolVersion ?? MCP_PROTOCOL_VERSION,
+            expiresAt: Date.now() + sessionTtlMs,
+          });
+          ctx.set("Mcp-Session-Id", sessionId);
+          ctx.set("MCP-Protocol-Version", MCP_PROTOCOL_VERSION);
+        }
       }
       return;
     }
@@ -361,10 +601,57 @@ router.post(
       return;
     }
 
+    const requestMethod = request.method;
+    const isInitialize = requestMethod === "initialize";
+
+    if (!isInitialize && !protocolVersionHeader) {
+      ctx.status = 400;
+      ctx.body = { error: "Missing MCP-Protocol-Version header" };
+      return;
+    }
+
+    if (!isInitialize && !isValidProtocolVersion(protocolVersionHeader)) {
+      ctx.status = 400;
+      ctx.body = { error: "Unsupported MCP-Protocol-Version header" };
+      return;
+    }
+
+    if (!isInitialize) {
+      if (!sessionIdHeader) {
+        ctx.status = 400;
+        ctx.body = { error: "Missing Mcp-Session-Id header" };
+        return;
+      }
+
+      const session = getSessionInfo(sessionIdHeader);
+      if (!session) {
+        ctx.status = 404;
+        ctx.body = { error: "MCP session not found" };
+        return;
+      }
+
+      session.expiresAt = Date.now() + sessionTtlMs;
+    }
+
     const response = await handleMcpRequest(request, ctx);
+    if (isInitialize && response?.result) {
+      const sessionId = randomUUID();
+      sessionStore.set(sessionId, {
+        protocolVersion:
+          (response.result as { protocolVersion?: string }).protocolVersion ??
+          MCP_PROTOCOL_VERSION,
+        expiresAt: Date.now() + sessionTtlMs,
+      });
+      ctx.set("Mcp-Session-Id", sessionId);
+      ctx.set("MCP-Protocol-Version", MCP_PROTOCOL_VERSION);
+    }
     // JSON-RPC 2.0 spec: servers MUST NOT reply to notifications
+    // Streamable HTTP spec: return 202 Accepted for notifications
     if (response !== null) {
       ctx.body = response;
+    } else {
+      ctx.status = 202;
+      ctx.body = "";
     }
   }
 );
@@ -374,7 +661,7 @@ router.post(
  * Used for long-running operations and real-time updates
  */
 router.get(
-  "mcp/sse",
+  "mcp",
   auth({
     type: [AuthenticationType.API, AuthenticationType.OAUTH],
   }),
@@ -384,6 +671,36 @@ router.get(
       ctx.body = { error: "MCP server is disabled" };
       return;
     }
+
+    const protocolVersionHeader = ctx.get("MCP-Protocol-Version");
+    const sessionIdHeader = ctx.get("Mcp-Session-Id");
+
+    if (!protocolVersionHeader) {
+      ctx.status = 400;
+      ctx.body = { error: "Missing MCP-Protocol-Version header" };
+      return;
+    }
+
+    if (!isValidProtocolVersion(protocolVersionHeader)) {
+      ctx.status = 400;
+      ctx.body = { error: "Unsupported MCP-Protocol-Version header" };
+      return;
+    }
+
+    if (!sessionIdHeader) {
+      ctx.status = 400;
+      ctx.body = { error: "Missing Mcp-Session-Id header" };
+      return;
+    }
+
+    const session = getSessionInfo(sessionIdHeader);
+    if (!session) {
+      ctx.status = 404;
+      ctx.body = { error: "MCP session not found" };
+      return;
+    }
+
+    session.expiresAt = Date.now() + sessionTtlMs;
 
     const { user } = ctx.state.auth;
 
@@ -397,15 +714,9 @@ router.get(
 
     ctx.status = 200;
 
-    // Send initial connection event
-    const sessionId = randomUUID();
-    ctx.res.write(
-      `event: endpoint\ndata: ${JSON.stringify({ endpoint: `/api/mcp?sessionId=${sessionId}` })}\n\n`
-    );
-
     Logger.debug("http", "MCP: SSE connection established", {
       userId: user.id,
-      sessionId,
+      sessionId: sessionIdHeader,
     });
 
     // Keep connection alive with periodic pings
@@ -422,7 +733,7 @@ router.get(
       clearInterval(pingInterval);
       Logger.debug("http", "MCP: SSE connection closed", {
         userId: user.id,
-        sessionId,
+        sessionId: sessionIdHeader,
       });
     });
 
