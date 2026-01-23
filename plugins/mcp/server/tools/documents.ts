@@ -85,18 +85,14 @@ export const documentTools = {
         where.createdById = userId;
       }
 
-      const documents = await Document.findAll({
+      const documents = await Document.scope([
+        "withoutState",
+        { method: ["withMembership", user.id] },
+      ]).findAll({
         where,
         order: [[sort, direction]],
         limit,
         offset,
-        include: [
-          {
-            model: Collection,
-            as: "collection",
-            required: true,
-          },
-        ],
       });
 
       // Filter by access permissions
@@ -146,14 +142,10 @@ export const documentTools = {
         ),
     }),
     handler: async (params: { id: string }, user: User, _ctx: APIContext) => {
-      const document = await Document.findByPk(params.id, {
-        include: [
-          {
-            model: Collection,
-            as: "collection",
-          },
-        ],
-      });
+      const document = await Document.scope([
+        "withoutState",
+        { method: ["withMembership", user.id] },
+      ]).findByPk(params.id);
 
       if (!document) {
         return {
@@ -366,7 +358,10 @@ export const documentTools = {
 
       // Validate parent document if provided
       if (parentDocumentId) {
-        const parentDocument = await Document.findByPk(parentDocumentId);
+        const parentDocument = await Document.scope([
+          "withoutState",
+          { method: ["withMembership", user.id] },
+        ]).findByPk(parentDocumentId);
         if (!parentDocument) {
           return {
             content: [
@@ -467,7 +462,10 @@ export const documentTools = {
     ) => {
       const { id, title, text, append = false } = params;
 
-      const document = await Document.findByPk(id);
+      const document = await Document.scope([
+        "withoutState",
+        { method: ["withMembership", user.id] },
+      ]).findByPk(id);
       if (!document) {
         return {
           content: [
