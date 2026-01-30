@@ -40,9 +40,9 @@ export const documentTools = {
         .default(0)
         .describe("Skip this many documents for pagination (default 0)"),
       sort: z
-        .enum(["updatedAt", "createdAt", "title", "index"])
+        .enum(["updatedAt", "createdAt", "title"])
         .default("updatedAt")
-        .describe("Sort by: updatedAt (default), createdAt, title, or index"),
+        .describe("Sort by: updatedAt (default), createdAt, or title"),
       direction: z
         .enum(["ASC", "DESC"])
         .default("DESC")

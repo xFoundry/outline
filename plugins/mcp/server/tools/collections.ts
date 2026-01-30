@@ -77,9 +77,10 @@ export const collectionTools = {
       id: z.string().describe("The collection ID (UUID) from collections_list"),
     }),
     handler: async (params: { id: string }, user: User, _ctx: APIContext) => {
-      const collection = await Collection.scope(
-        "withDocumentStructure"
-      ).findByPk(params.id);
+      const collection = await Collection.findByPk(params.id, {
+        includeDocumentStructure: true,
+        userId: user.id,
+      });
 
       if (!collection) {
         return {
@@ -130,9 +131,10 @@ export const collectionTools = {
       id: z.string().describe("The collection ID (UUID) from collections_list"),
     }),
     handler: async (params: { id: string }, user: User, _ctx: APIContext) => {
-      const collection = await Collection.scope(
-        "withDocumentStructure"
-      ).findByPk(params.id);
+      const collection = await Collection.findByPk(params.id, {
+        includeDocumentStructure: true,
+        userId: user.id,
+      });
 
       if (!collection) {
         return {
