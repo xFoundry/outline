@@ -142,10 +142,11 @@ export const documentTools = {
         ),
     }),
     handler: async (params: { id: string }, user: User, _ctx: APIContext) => {
-      const document = await Document.scope([
-        "withoutState",
-        { method: ["withMembership", user.id] },
-      ]).findByPk(params.id);
+      const document = await Document.findByPk(params.id, {
+        userId: user.id,
+        includeState: false,
+        paranoid: false,
+      });
 
       if (!document) {
         return {
