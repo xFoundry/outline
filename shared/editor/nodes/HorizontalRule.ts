@@ -19,6 +19,7 @@ export default class HorizontalRule extends Node {
         },
       },
       group: "block",
+      draggable: true,
       parseDOM: [{ tag: "hr" }],
       toDOM: (node) => [
         "hr",

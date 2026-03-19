@@ -42,6 +42,7 @@ export default class Attachment extends Node {
       group: "block",
       defining: true,
       atom: true,
+      draggable: true,
       parseDOM: [
         {
           priority: 100,

@@ -46,7 +46,6 @@ export default class Heading extends Node {
       content: "inline*",
       group: "block",
       defining: true,
-      draggable: false,
       parseDOM: this.options.levels.map((level: number) => ({
         tag: `h${level}`,
         attrs: { level },

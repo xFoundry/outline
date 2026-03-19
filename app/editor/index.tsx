@@ -29,7 +29,6 @@ import insertFiles from "@shared/editor/commands/insertFiles";
 import Styles from "@shared/editor/components/Styles";
 import { EmbedDescriptor } from "@shared/editor/embeds";
 import Extension, {
-  CommandFactory,
   WidgetProps,
 } from "@shared/editor/lib/Extension";
 import ExtensionManager from "@shared/editor/lib/ExtensionManager";
@@ -175,7 +174,7 @@ export class Editor extends React.PureComponent<
       // no default behavior
     },
     embeds: [],
-    extensions,
+    extensions: extensions,
   };
 
   state: State = {
@@ -439,7 +438,7 @@ export class Editor extends React.PureComponent<
         (step) =>
           (step instanceof ReplaceAroundStep || step instanceof ReplaceStep) &&
           step.slice.content?.firstChild?.type.name ===
-            this.schema.nodes.checkbox_item.name
+          this.schema.nodes.checkbox_item.name
       );
 
     const isEditingComment = (tr: Transaction) =>
@@ -873,7 +872,7 @@ export class Editor extends React.PureComponent<
   }
 }
 
-const EditorContainer = styled(Styles)<{
+const EditorContainer = styled(Styles) <{
   userId?: string;
   focusedCommentId?: string;
 }>`
@@ -900,8 +899,8 @@ const EditorContainer = styled(Styles)<{
 
         &.ProseMirror-selectednode {
           outline-color: ${props.readOnly
-            ? "transparent"
-            : darken(0.2, props.theme.textHighlight)};
+        ? "transparent"
+        : darken(0.2, props.theme.textHighlight)};
         }
       }
     `}

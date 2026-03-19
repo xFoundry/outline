@@ -57,6 +57,7 @@ export default class Table extends Node {
       tableRole: "table",
       isolating: true,
       group: "block",
+      draggable: true,
       parseDOM: [{ tag: "table" }],
       attrs: {
         layout: {

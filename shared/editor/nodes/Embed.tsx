@@ -22,6 +22,7 @@ export default class Embed extends Node {
       content: "inline*",
       group: "block",
       atom: true,
+      draggable: true,
       attrs: {
         href: {
           validate: "string",

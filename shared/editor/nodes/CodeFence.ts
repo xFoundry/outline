@@ -71,7 +71,6 @@ export default class CodeFence extends Node {
       group: "block",
       code: true,
       defining: true,
-      draggable: false,
       parseDOM: [
         {
           tag: ".code-block",

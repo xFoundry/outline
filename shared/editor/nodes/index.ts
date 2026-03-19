@@ -21,6 +21,7 @@ import CheckboxItem from "./CheckboxItem";
 import CheckboxList from "./CheckboxList";
 import CodeBlock from "./CodeBlock";
 import CodeFence from "./CodeFence";
+import Column from "./Column";
 import Doc from "./Doc";
 import Embed from "./Embed";
 import Emoji from "./Emoji";
@@ -32,6 +33,7 @@ import ListItem from "./ListItem";
 import Math from "./Math";
 import MathBlock from "./MathBlock";
 import Mention from "./Mention";
+import MultiColumn from "./MultiColumn";
 import Node from "./Node";
 import Notice from "./Notice";
 import OrderedList from "./OrderedList";
@@ -112,6 +114,8 @@ export const richExtensions: Nodes = [
   // the container nodes first.
   ...listExtensions,
   ...tableExtensions,
+  Column,
+  MultiColumn,
 ];
 
 /**
