@@ -356,6 +356,9 @@ export type SourceMetadata = {
 export type CustomTheme = {
   accent: string;
   accentText: string;
+  imageBorderRadius?: string;
+  fontFamilyHeading?: string;
+  fontFamilyBody?: string;
 };
 
 export type PublicTeam = {

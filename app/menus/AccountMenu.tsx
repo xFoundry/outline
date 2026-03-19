@@ -8,8 +8,6 @@ import {
   openChangelog,
   openDocumentation,
   openAPIDocumentation,
-  openBugReportUrl,
-  openFeedbackUrl,
   logout,
 } from "~/actions/definitions/navigation";
 import { changeTheme } from "~/actions/definitions/settings";
@@ -31,8 +29,6 @@ const AccountMenu: React.FC = ({ children }: Props) => {
       openAPIDocumentation,
       ActionSeparator,
       openChangelog,
-      openFeedbackUrl,
-      openBugReportUrl,
       changeTheme,
       navigateToProfileSettings,
       navigateToAccountPreferences,

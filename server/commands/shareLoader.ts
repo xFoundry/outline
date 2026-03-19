@@ -175,10 +175,10 @@ export async function loadShareWithParent({
     authorize(user, "read", share.collection);
   }
 
-  let parentShare: Share | null = null;
+  let parentShares: Share[] = [];
 
-  // Load the parent shares and return one (needed for share toggle in UI).
-  // Parent share is needed for documents only since collections don't have parents.
+  // Load all parent shares for the share UI. Parent shares are only applicable
+  // to documents because collections do not have parents.
   if (documentId) {
     authorize(user, "read", share.document);
 
@@ -207,33 +207,35 @@ export async function loadShareWithParent({
       },
     });
 
-    // prefer collection share if it exists and user has read access.
     if (collectionShare && can(user, "read", collectionShare)) {
-      parentShare = collectionShare;
-    } else {
-      const parentDocIds = docCollection.getDocumentParents(documentId);
+      parentShares.push(collectionShare);
+    }
 
-      const allParentShares = parentDocIds
-        ? await Share.scope({
-            method: ["withCollectionPermissions", user.id],
-          }).findAll({
-            where: {
-              revokedAt: {
-                [Op.is]: null,
-              },
-              published: true,
-              teamId: user.teamId,
-              includeChildDocuments: true,
-              documentId: parentDocIds,
-            },
-          })
-        : null;
+    const parentDocIds = docCollection.getDocumentParents(documentId);
+    if (parentDocIds && parentDocIds.length > 0) {
+      const allParentShares = await Share.scope({
+        method: ["withCollectionPermissions", user.id],
+      }).findAll({
+        where: {
+          revokedAt: {
+            [Op.is]: null,
+          },
+          published: true,
+          teamId: user.teamId,
+          includeChildDocuments: true,
+          documentId: parentDocIds,
+        },
+      });
 
-      parentShare = allParentShares?.find((s) => can(user, "read", s)) ?? null;
+      parentShares.push(...allParentShares.filter((item) => can(user, "read", item)));
     }
   }
 
-  return { share, parentShare };
+  return {
+    share,
+    parentShare: parentShares[0] ?? null,
+    parentShares,
+  };
 }
 
 /**

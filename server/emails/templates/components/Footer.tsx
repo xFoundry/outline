@@ -57,6 +57,12 @@ export default ({ unsubscribeUrl, children }: Props) => {
             <a href={UrlHelper.twitter} style={externalLinkStyle}>
               Twitter
             </a>
+            <a href={UrlHelper.linkedin} style={externalLinkStyle}>
+              LinkedIn
+            </a>
+            <a href={UrlHelper.github} style={externalLinkStyle}>
+              GitHub
+            </a>
           </TD>
         </TR>
         {unsubscribeUrl && (

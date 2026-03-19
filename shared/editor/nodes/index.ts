@@ -17,6 +17,7 @@ import Underline from "../marks/Underline";
 import Attachment from "./Attachment";
 import Blockquote from "./Blockquote";
 import BulletList from "./BulletList";
+import Button from "./Button";
 import CheckboxItem from "./CheckboxItem";
 import CheckboxList from "./CheckboxList";
 import CodeBlock from "./CodeBlock";
@@ -107,6 +108,7 @@ export const richExtensions: Nodes = [
   Blockquote,
   Embed,
   Attachment,
+  Button,
   Video,
   Notice,
   Heading,

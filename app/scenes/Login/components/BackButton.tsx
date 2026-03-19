@@ -2,6 +2,7 @@ import { BackIcon } from "outline-icons";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { parseDomain } from "@shared/utils/domains";
+import { UrlHelper } from "@shared/utils/UrlHelper";
 import type { Config } from "~/stores/AuthStore";
 import env from "~/env";
 import Desktop from "~/utils/Desktop";
@@ -33,7 +34,7 @@ export function BackButton({ onBack, config }: Props) {
   }
 
   return (
-    <Link href={isSubdomain ? env.URL : "https://www.getoutline.com"}>
+    <Link href={isSubdomain ? env.URL : UrlHelper.home}>
       <BackIcon /> {Desktop.isElectron() ? t("Back") : t("Back to home")}
     </Link>
   );

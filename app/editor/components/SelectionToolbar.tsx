@@ -21,8 +21,10 @@ import useDictionary from "~/hooks/useDictionary";
 import useEventListener from "~/hooks/useEventListener";
 import useMobile from "~/hooks/useMobile";
 import getAttachmentMenuItems from "../menus/attachment";
+import getButtonMenuItems from "../menus/button";
 import getCodeMenuItems from "../menus/code";
 import getDividerMenuItems from "../menus/divider";
+import getEmbedMenuItems from "../menus/embed";
 import getFormattingMenuItems from "../menus/formatting";
 import getImageMenuItems from "../menus/image";
 import getNoticeMenuItems from "../menus/notice";
@@ -30,11 +32,13 @@ import getReadOnlyMenuItems from "../menus/readOnly";
 import getTableMenuItems from "../menus/table";
 import getTableColMenuItems from "../menus/tableCol";
 import getTableRowMenuItems from "../menus/tableRow";
+import getVideoMenuItems from "../menus/video";
 import {
   columnDragPluginKey,
   rowDragPluginKey,
 } from "@shared/editor/plugins/TableDragState";
 import { useEditor } from "./EditorContext";
+import { ButtonEditor } from "./ButtonEditor";
 import { MediaLinkEditor } from "./MediaLinkEditor";
 import FloatingToolbar from "./FloatingToolbar";
 import LinkEditor from "./LinkEditor";
@@ -76,6 +80,7 @@ function useIsDragging(state: EditorState) {
 enum Toolbar {
   Link = "link",
   Media = "media",
+  Button = "button",
   Menu = "menu",
 }
 
@@ -101,9 +106,23 @@ export function SelectionToolbar(props: Props) {
 
   const isEmbedSelection =
     selection instanceof NodeSelection && selection.node.type.name === "embed";
+  const isButtonSelection =
+    selection instanceof NodeSelection && selection.node.type.name === "button";
+  const isVideoSelection =
+    selection instanceof NodeSelection && selection.node.type.name === "video";
+  const isImageSelection =
+    selection instanceof NodeSelection && selection.node.type.name === "image";
+  const isAttachmentSelection =
+    selection instanceof NodeSelection &&
+    selection.node.type.name === "attachment";
 
   const isCodeSelection = isInCode(state, { onlyBlock: true });
   const isNoticeSelection = isInNotice(state);
+  const selectedNode =
+    selection instanceof NodeSelection ? selection.node : undefined;
+  const mediaNode =
+    isImageSelection || isEmbedSelection ? selectedNode : undefined;
+  const buttonNode = isButtonSelection ? selectedNode : undefined;
 
   React.useLayoutEffect(() => {
     if (!isActive) {
@@ -111,9 +130,21 @@ export function SelectionToolbar(props: Props) {
       return;
     }
 
-    if (isEmbedSelection && !readOnly) {
-      setActiveToolbar(Toolbar.Media);
-    } else if (
+    if (activeToolbar === Toolbar.Media) {
+      if (!isImageSelection && !isEmbedSelection) {
+        setActiveToolbar(Toolbar.Menu);
+      }
+      return;
+    }
+
+    if (activeToolbar === Toolbar.Button) {
+      if (!isButtonSelection) {
+        setActiveToolbar(Toolbar.Menu);
+      }
+      return;
+    }
+
+    if (
       linkMark &&
       (activeToolbar === null || activeToolbar === Toolbar.Link) &&
       !readOnly
@@ -129,11 +160,14 @@ export function SelectionToolbar(props: Props) {
       setActiveToolbar(null);
     }
   }, [
+    activeToolbar,
     readOnly,
     isActive,
     selection,
     linkMark,
+    isImageSelection,
     isEmbedSelection,
+    isButtonSelection,
     isCodeSelection,
     isNoticeSelection,
   ]);
@@ -142,7 +176,7 @@ export function SelectionToolbar(props: Props) {
     if (autoFocusLinkInput && activeToolbar !== Toolbar.Link) {
       setAutoFocusLinkInput(false);
     }
-  }, [activeToolbar]);
+  }, [autoFocusLinkInput, activeToolbar]);
 
   // Refocus the editor when the link toolbar closes to prevent focus loss
   const prevActiveToolbar = React.useRef(activeToolbar);
@@ -200,7 +234,7 @@ export function SelectionToolbar(props: Props) {
     return () => {
       window.removeEventListener("mouseup", handleClickOutside);
     };
-  }, [isActive, readOnly, view]);
+  }, [extensions.extensions, isActive, readOnly, view]);
 
   useEventListener(
     "keydown",
@@ -231,12 +265,6 @@ export function SelectionToolbar(props: Props) {
   const isDividerSelection = isNodeActive(state.schema.nodes.hr)(state);
   const colIndex = getColumnIndex(state);
   const rowIndex = getRowIndex(state);
-  const isImageSelection =
-    selection instanceof NodeSelection && selection.node.type.name === "image";
-  const isAttachmentSelection =
-    selection instanceof NodeSelection &&
-    selection.node.type.name === "attachment";
-
   let items: MenuItem[] = [];
   let align: "center" | "start" | "end" = "center";
 
@@ -261,6 +289,12 @@ export function SelectionToolbar(props: Props) {
     items = getImageMenuItems(state, readOnly, dictionary);
   } else if (isAttachmentSelection) {
     items = getAttachmentMenuItems(state, readOnly, dictionary);
+  } else if (isButtonSelection) {
+    items = getButtonMenuItems(state, readOnly, dictionary);
+  } else if (isVideoSelection) {
+    items = getVideoMenuItems(state, readOnly, dictionary);
+  } else if (isEmbedSelection) {
+    items = getEmbedMenuItems(state, readOnly, dictionary);
   } else if (isDividerSelection) {
     items = getDividerMenuItems(state, readOnly, dictionary);
   } else if (readOnly) {
@@ -280,6 +314,12 @@ export function SelectionToolbar(props: Props) {
     if (item.name === "dimensions") {
       return item.visible ?? false;
     }
+    if (
+      item.name &&
+      ["editImageUrl", "editEmbedUrl", "editButtonUrl"].includes(item.name)
+    ) {
+      return true;
+    }
     if (item.name && !commands[item.name]) {
       return false;
     }
@@ -291,11 +331,28 @@ export function SelectionToolbar(props: Props) {
 
   items = filterExcessSeparators(items);
   items = items.map((item) => {
+    if (item.name === "editImageUrl" || item.name === "editEmbedUrl") {
+      item.onClick = () => {
+        setActiveToolbar(Toolbar.Media);
+      };
+    }
+
+    if (item.name === "editButtonUrl") {
+      item.onClick = () => {
+        setActiveToolbar(Toolbar.Button);
+      };
+    }
+
     if (item.children && Array.isArray(item.children)) {
       item.children = item.children.map((child) => {
-        if (child.name === "editImageUrl") {
+        if (child.name === "editImageUrl" || child.name === "editEmbedUrl") {
           child.onClick = () => {
             setActiveToolbar(Toolbar.Media);
+          };
+        }
+        if (child.name === "editButtonUrl") {
+          child.onClick = () => {
+            setActiveToolbar(Toolbar.Button);
           };
         }
         return child;
@@ -312,7 +369,12 @@ export function SelectionToolbar(props: Props) {
   });
 
   const handleClickOutsideLinkEditor = (ev: MouseEvent | TouchEvent) => {
-    if (ev.target instanceof Element && ev.target.closest(".image-wrapper")) {
+    if (
+      ev.target instanceof Element &&
+      ev.target.closest(
+        ".image-wrapper, .embed-wrapper, .editor-button-wrapper, .video"
+      )
+    ) {
       return;
     }
     setActiveToolbar(null);
@@ -324,7 +386,9 @@ export function SelectionToolbar(props: Props) {
       active={isActive}
       ref={menuRef}
       width={
-        activeToolbar === Toolbar.Link || activeToolbar === Toolbar.Media
+        activeToolbar === Toolbar.Link ||
+        (activeToolbar === Toolbar.Media && mediaNode) ||
+        (activeToolbar === Toolbar.Button && buttonNode)
           ? 336
           : undefined
       }
@@ -346,15 +410,21 @@ export function SelectionToolbar(props: Props) {
       ) : activeToolbar === Toolbar.Media ? (
         <MediaLinkEditor
           key={`embed-${selection.anchor}`}
-          node={
-            "node" in selection ? (selection as NodeSelection).node : undefined
-          }
+          node={mediaNode}
           view={view}
           dictionary={dictionary}
           onLinkUpdate={() => setActiveToolbar(null)}
           onLinkRemove={() => setActiveToolbar(null)}
           onEscape={() => setActiveToolbar(Toolbar.Menu)}
           onClickOutside={handleClickOutsideLinkEditor}
+        />
+      ) : activeToolbar === Toolbar.Button && buttonNode ? (
+        <ButtonEditor
+          key={`button-${selection.anchor}`}
+          node={buttonNode}
+          view={view}
+          dictionary={dictionary}
+          autoFocus
         />
       ) : activeToolbar === Toolbar.Menu && items.length ? (
         <ToolbarMenu items={items} {...rest} />

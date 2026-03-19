@@ -1,6 +1,8 @@
 import { darken, lighten, transparentize } from "polished";
 import type { DefaultTheme, Colors } from "styled-components";
 import breakpoints from "./breakpoints";
+import type { CustomTheme } from "../types";
+import { buildFontStack } from "../utils/googleFonts";
 
 const defaultColors: Colors = {
   transparent: "transparent",
@@ -24,7 +26,7 @@ const defaultColors: Colors = {
   black10: "rgba(0, 0, 0, 0.1)",
   black50: "rgba(0, 0, 0, 0.50)",
   black75: "rgba(0, 0, 0, 0.75)",
-  accent: "#0366d6",
+  accent: "#07222d",
   yellow: "#EDBA07",
   warmGrey: "#EDF2F7",
   danger: "#ed2651",
@@ -51,15 +53,16 @@ const spacing = {
   sidebarMaxWidth: 600,
 };
 
-const buildBaseTheme = (input: Partial<Colors>) => {
+const buildBaseTheme = (input: Partial<Colors> & Partial<CustomTheme>) => {
   const colors = {
     ...defaultColors,
     ...input,
   };
 
   return {
-    fontFamily:
-      "-apple-system, BlinkMacSystemFont, Inter, 'Segoe UI', Roboto, Oxygen, sans-serif",
+    imageBorderRadius: input.imageBorderRadius ?? "8px",
+    fontFamily: buildFontStack(input.fontFamilyBody),
+    fontFamilyHeading: buildFontStack(input.fontFamilyHeading),
     fontFamilyMono:
       "'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace",
     fontFamilyEmoji:
@@ -108,7 +111,9 @@ const buildBaseTheme = (input: Partial<Colors>) => {
   };
 };
 
-export const buildLightTheme = (input: Partial<Colors>): DefaultTheme => {
+export const buildLightTheme = (
+  input: Partial<Colors> & Partial<CustomTheme>
+): DefaultTheme => {
   const colors = buildBaseTheme(input);
 
   return {
@@ -173,7 +178,9 @@ export const buildLightTheme = (input: Partial<Colors>): DefaultTheme => {
   };
 };
 
-export const buildDarkTheme = (input: Partial<Colors>): DefaultTheme => {
+export const buildDarkTheme = (
+  input: Partial<Colors> & Partial<CustomTheme>
+): DefaultTheme => {
   const colors = buildBaseTheme(input);
 
   return {
@@ -262,7 +269,9 @@ export const buildDarkTheme = (input: Partial<Colors>): DefaultTheme => {
   };
 };
 
-export const buildPitchBlackTheme = (input: Partial<Colors>) => {
+export const buildPitchBlackTheme = (
+  input: Partial<Colors> & Partial<CustomTheme>
+): DefaultTheme => {
   const colors = buildDarkTheme(input);
 
   return {

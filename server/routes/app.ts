@@ -10,6 +10,7 @@ import {
   TeamPreference,
   type NavigationNode,
 } from "@shared/types";
+import { brand } from "@shared/utils/brand";
 import { unicodeCLDRtoISO639 } from "@shared/utils/date";
 import env from "@server/env";
 import { Integration } from "@server/models";
@@ -88,7 +89,7 @@ export const renderApp = async (
 ) => {
   const {
     title = env.APP_NAME,
-    description = "A modern team knowledge base for your internal documentation, product specs, support answers, meeting notes, onboarding, &amp; more…",
+    description = brand.description,
     canonical = "",
     content = "",
     shortcutIcon = `${env.CDN_URL || ""}/images/favicon-32.png`,
@@ -179,7 +180,7 @@ export const renderApp = async (
       rel="search"
       type="application/opensearchdescription+xml"
       href="/opensearch.xml"
-      title="Outline"
+      title="${escape(env.APP_NAME)}"
     />
     `;
   }

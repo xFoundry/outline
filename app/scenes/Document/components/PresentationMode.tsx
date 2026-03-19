@@ -6,6 +6,7 @@ import styled, { useTheme } from "styled-components";
 import Icon from "@shared/components/Icon";
 import { richExtensions } from "@shared/editor/nodes";
 import { canUseElementFullscreen } from "@shared/utils/browser";
+import { UrlHelper } from "@shared/utils/UrlHelper";
 import { s, depths, hover } from "@shared/styles";
 import type { ProsemirrorData } from "@shared/types";
 import { colorPalette } from "@shared/utils/collections";
@@ -347,7 +348,7 @@ function PresentationMode({ title, icon, iconColor, data, onClose }: Props) {
                   "Add content to your document, then use headings or dividers to separate it into slides."
                 )}{" "}
                 <a
-                  href="https://docs.getoutline.com/s/guide/doc/present-mode-yMGzaY7A9L"
+                  href={UrlHelper.guide}
                   target="_blank"
                 >
                   {t("Learn more")}

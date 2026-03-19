@@ -4,6 +4,7 @@ import * as React from "react";
 import { useTranslation, Trans } from "react-i18next";
 import { toast } from "sonner";
 import { TeamPreference } from "@shared/types";
+import { UrlHelper } from "@shared/utils/UrlHelper";
 import Heading from "~/components/Heading";
 import Scene from "~/components/Scene";
 import Switch from "~/components/Switch";
@@ -67,7 +68,7 @@ function Features() {
                         <Text
                           as="a"
                           weight="bold"
-                          href="https://docs.getoutline.com/s/guide/doc/mcp-6j9jtENNKL"
+                          href={UrlHelper.guide}
                           target="_blank"
                           rel="noopener noreferrer"
                         />

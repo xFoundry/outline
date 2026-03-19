@@ -12,7 +12,6 @@ import {
   BrowserIcon,
   ShapesIcon,
   DraftsIcon,
-  BugIcon,
 } from "outline-icons";
 import { UrlHelper } from "@shared/utils/UrlHelper";
 import { isMac } from "@shared/utils/browser";
@@ -176,26 +175,6 @@ export const toggleSidebar = createAction({
   perform: () => stores.ui.toggleCollapsedSidebar(),
 });
 
-export const openFeedbackUrl = createExternalLinkAction({
-  name: ({ t }) => t("Send us feedback"),
-  analyticsName: "Open feedback",
-  section: NavigationSection,
-  iconInContextMenu: false,
-  icon: <EmailIcon />,
-  url: UrlHelper.contact,
-  target: "_blank",
-});
-
-export const openBugReportUrl = createExternalLinkAction({
-  name: ({ t }) => t("Report a bug"),
-  analyticsName: "Open bug report",
-  section: NavigationSection,
-  iconInContextMenu: false,
-  icon: <BugIcon />,
-  url: UrlHelper.github,
-  target: "_blank",
-});
-
 export const openChangelog = createExternalLinkAction({
   name: ({ t }) => t("Changelog"),
   analyticsName: "Open changelog",
@@ -253,8 +232,6 @@ export const rootNavigationActions = [
   downloadApp,
   openDocumentation,
   openAPIDocumentation,
-  openFeedbackUrl,
-  openBugReportUrl,
   openChangelog,
   openKeyboardShortcuts,
   toggleSidebar,

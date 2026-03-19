@@ -105,13 +105,13 @@ router.post(
     }
 
     try {
-      const { share, parentShare } = await loadShareWithParent({
+      const { share, parentShares } = await loadShareWithParent({
         collectionId,
         documentId,
         user,
       });
 
-      const shares = [share, parentShare].filter(Boolean) as Share[];
+      const shares = [share, ...parentShares].filter(Boolean) as Share[];
       if (!shares.length) {
         throw NotFoundError();
       }

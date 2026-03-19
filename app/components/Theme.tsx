@@ -3,6 +3,7 @@ import * as React from "react";
 import { ThemeProvider } from "styled-components";
 import GlobalStyles from "@shared/styles/globals";
 import { TeamPreference, UserPreference } from "@shared/types";
+import GoogleFontLoader from "~/components/GoogleFontLoader";
 import useBuildTheme from "~/hooks/useBuildTheme";
 import useStores from "~/hooks/useStores";
 
@@ -12,11 +13,11 @@ type Props = {
 
 const Theme: React.FC = ({ children }: Props) => {
   const { auth, ui } = useStores();
-  const theme = useBuildTheme(
+  const customTheme =
     auth.team?.getPreference(TeamPreference.CustomTheme) ||
-      auth.config?.customTheme ||
-      undefined
-  );
+    auth.config?.customTheme ||
+    undefined;
+  const theme = useBuildTheme(customTheme);
 
   React.useEffect(() => {
     window.dispatchEvent(
@@ -29,6 +30,10 @@ const Theme: React.FC = ({ children }: Props) => {
   return (
     <ThemeProvider theme={theme}>
       <>
+        <GoogleFontLoader
+          headingFont={customTheme?.fontFamilyHeading}
+          bodyFont={customTheme?.fontFamilyBody}
+        />
         <GlobalStyles
           useCursorPointer={
             // Default to showing the cursor pointer if no user is logged in (public share)

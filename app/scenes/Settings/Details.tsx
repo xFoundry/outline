@@ -18,6 +18,7 @@ import DefaultCollectionInputSelect from "~/components/DefaultCollectionInputSel
 import Heading from "~/components/Heading";
 import Input from "~/components/Input";
 import InputColor from "~/components/InputColor";
+import InputFontSelect from "~/components/InputFontSelect";
 import type { Option } from "~/components/InputSelect";
 import { InputSelect } from "~/components/InputSelect";
 import Scene from "~/components/Scene";
@@ -46,6 +47,15 @@ function Details() {
   const [accentText, setAccentText] = useState<null | undefined | string>(
     team.preferences?.customTheme?.accentText
   );
+  const [imageBorderRadius, setImageBorderRadius] = useState<string>(
+    team.preferences?.customTheme?.imageBorderRadius ?? "8px"
+  );
+  const [fontFamilyHeading, setFontFamilyHeading] = useState<string | null>(
+    team.preferences?.customTheme?.fontFamilyHeading ?? null
+  );
+  const [fontFamilyBody, setFontFamilyBody] = useState<string | null>(
+    team.preferences?.customTheme?.fontFamilyBody ?? null
+  );
   const [name, setName] = useState(team.name);
   const [description, setDescription] = useState(team.description || "");
   const [subdomain, setSubdomain] = useState(team.subdomain);
@@ -56,13 +66,18 @@ function Details() {
     team.defaultCollectionId
   );
 
-  const customTheme: Partial<CustomTheme> = pickBy(
-    {
-      accent,
-      accentText,
-    },
-    isHexColor
-  );
+  const customTheme: Partial<CustomTheme> = {
+    ...pickBy(
+      {
+        accent,
+        accentText,
+      },
+      isHexColor
+    ),
+    imageBorderRadius,
+    ...(fontFamilyHeading && { fontFamilyHeading }),
+    ...(fontFamilyBody && { fontFamilyBody }),
+  };
 
   const [tocPosition, setTocPosition] = useState(
     team.getPreference(TeamPreference.TocPosition) as TOCPosition
@@ -87,6 +102,27 @@ function Details() {
 
   const handleTocPositionChange = React.useCallback((position: string) => {
     setTocPosition(position as TOCPosition);
+  }, []);
+
+  const imageBorderRadiusOptions: Option[] = React.useMemo(
+    () =>
+      [
+        {
+          type: "item",
+          label: t("None"),
+          value: "0px",
+        },
+        {
+          type: "item",
+          label: t("Rounded"),
+          value: "8px",
+        },
+      ] satisfies Option[],
+    [t]
+  );
+
+  const handleImageBorderRadiusChange = React.useCallback((value: string) => {
+    setImageBorderRadius(value);
   }, []);
 
   const handleSubmit = React.useCallback(
@@ -301,7 +337,6 @@ function Details() {
             </SettingRow>
           )}
           <SettingRow
-            border={false}
             label={t("Table of contents position")}
             name="tocPosition"
             description={t(
@@ -314,6 +349,42 @@ function Details() {
               onChange={handleTocPositionChange}
               label={t("Table of contents position")}
               hideLabel
+            />
+          </SettingRow>
+          <SettingRow
+            label={t("Image corners")}
+            name="imageBorderRadius"
+            description={t(
+              "Choose whether images in documents should have rounded corners."
+            )}
+          >
+            <InputSelect
+              options={imageBorderRadiusOptions}
+              value={imageBorderRadius}
+              onChange={handleImageBorderRadiusChange}
+              label={t("Image corners")}
+              hideLabel
+            />
+          </SettingRow>
+          <SettingRow
+            border={false}
+            label={t("Typography")}
+            name="typography"
+            description={t(
+              "Customize fonts for headings and body text. Fonts are loaded from Google Fonts."
+            )}
+          >
+            <InputFontSelect
+              type="heading"
+              value={fontFamilyHeading}
+              onChange={setFontFamilyHeading}
+              label={t("Heading font")}
+            />
+            <InputFontSelect
+              type="body"
+              value={fontFamilyBody}
+              onChange={setFontFamilyBody}
+              label={t("Body font")}
             />
           </SettingRow>
 

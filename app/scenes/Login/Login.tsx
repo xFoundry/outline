@@ -16,7 +16,7 @@ import ButtonLarge from "~/components/ButtonLarge";
 import ChangeLanguage from "~/components/ChangeLanguage";
 import Flex from "~/components/Flex";
 import Heading from "~/components/Heading";
-import OutlineIcon from "~/components/Icons/OutlineIcon";
+import BrandIcon from "~/components/Icons/BrandIcon";
 import Input from "~/components/Input";
 import LoadingIndicator from "~/components/LoadingIndicator";
 import { OneTimePasswordInput } from "~/components/OneTimePasswordInput";
@@ -295,7 +295,7 @@ function Login({ children, onBack }: Props) {
           {config.logo && !isCreate ? (
             <TeamLogo size={AvatarSize.XXLarge} src={config.logo} />
           ) : (
-            <OutlineIcon size={AvatarSize.XXLarge} />
+            <BrandIcon size={AvatarSize.XXLarge} alt={env.APP_NAME} />
           )}
         </Logo>
         {isCreate ? (
@@ -313,7 +313,7 @@ function Login({ children, onBack }: Props) {
           <>
             <StyledHeading as="h2" centered>
               {t("Login to {{ authProviderName }}", {
-                authProviderName: config.name || env.APP_NAME,
+                authProviderName: env.APP_NAME,
               })}
             </StyledHeading>
             {children?.(config)}

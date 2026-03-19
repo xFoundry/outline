@@ -913,6 +913,12 @@ function SuggestionsMenu<T extends MenuItem>(props: Props<T>) {
             <MobileScrollable hiddenScrollbars>
               {insertItem ? (
                 <LinkInputWrapper>
+                  {insertItem.title === "LinkedIn" && (
+                    <Warning>
+                      Note: LinkedIn embeds only support post URLs containing
+                      -activity- or -ugcPost-. Profile URLs are not supported.
+                    </Warning>
+                  )}
                   <LinkInput
                     type="text"
                     placeholder={
@@ -963,6 +969,12 @@ function SuggestionsMenu<T extends MenuItem>(props: Props<T>) {
         >
           {insertItem ? (
             <LinkInputWrapper>
+              {insertItem.title === "LinkedIn" && (
+                <Warning>
+                  Note: LinkedIn embeds only support post URLs containing
+                  -activity- or -ugcPost-. Profile URLs are not supported.
+                </Warning>
+              )}
               <LinkInput
                 type="text"
                 placeholder={
@@ -1081,6 +1093,17 @@ const SubmenuPopoverContent = styled(PopoverContent)`
 
 const LinkInputWrapper = styled.div`
   margin: 8px;
+`;
+
+const Warning = styled.div`
+  background: ${s("noticeInfoBackground")};
+  color: ${s("noticeInfoText")};
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1.4;
+  white-space: normal;
 `;
 
 const LinkInput = styled(Input)`

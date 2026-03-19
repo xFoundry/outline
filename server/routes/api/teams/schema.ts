@@ -56,6 +56,9 @@ export const TeamsUpdateSchema = BaseSchema.extend({
           .object({
             accent: z.string().min(4).max(7).regex(/^#/).optional(),
             accentText: z.string().min(4).max(7).regex(/^#/).optional(),
+            imageBorderRadius: z.enum(["0px", "8px"]).optional(),
+            fontFamilyHeading: z.string().max(100).optional(),
+            fontFamilyBody: z.string().max(100).optional(),
           })
           .optional(),
         /** Side to display the document's table of contents in relation to the main content. */

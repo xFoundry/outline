@@ -16,6 +16,7 @@ import {
 } from "class-validator";
 import uniq from "lodash/uniq";
 import { languages } from "@shared/i18n";
+import { brand } from "@shared/utils/brand";
 import { Day, Hour } from "@shared/utils/time";
 import {
   CannotUseWith,
@@ -776,7 +777,7 @@ export class Environment {
    * The product name
    */
   @Public
-  public APP_NAME = "Outline";
+  public APP_NAME = brand.name;
 
   /**
    * Gravity constant for time decay in popularity scoring. Higher values cause

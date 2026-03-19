@@ -1,5 +1,6 @@
 import * as React from "react";
 import { UserRole } from "@shared/types";
+import { UrlHelper } from "@shared/utils/UrlHelper";
 import env from "@server/env";
 import type { EmailProps } from "./BaseEmail";
 import BaseEmail, { EmailMessageCategory } from "./BaseEmail";
@@ -50,8 +51,8 @@ ${env.APP_NAME} is a place for your team to build and share knowledge.
 
 To get started, head to the home screen and try creating a collection to help document your processes, create playbooks, or plan your team's work.
 
-Or, learn more about everything Outline can do in the guide:
-https://docs.getoutline.com/s/guide
+Need help? Visit our documentation at:
+${UrlHelper.guide}
 
 ${teamUrl}/home
 `;
@@ -76,8 +77,8 @@ ${teamUrl}/home
             plan your teams work.
           </p>
           <p>
-            Or, learn more about everything Outline can do in{" "}
-            <a href="https://docs.getoutline.com/s/guide">the guide</a>.
+            Need help? Visit our{" "}
+            <a href={UrlHelper.guide}>documentation</a> to learn more.
           </p>
           <EmptySpace height={10} />
           <p>

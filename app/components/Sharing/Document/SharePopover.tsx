@@ -43,7 +43,7 @@ function SharePopover({ document, onRequestClose, visible }: Props) {
   const can = usePolicy(document);
   const { shares } = useStores();
   const share = shares.getByDocumentId(document.id);
-  const sharedParent = shares.getByDocumentParents(document);
+  const sharedParents = shares.getAllByDocumentParents(document);
   const [hasRendered, setHasRendered] = React.useState(visible);
   const { users, userMemberships, groups, groupMemberships } = useStores();
   const [query, setQuery] = React.useState("");
@@ -375,7 +375,7 @@ function SharePopover({ document, onRequestClose, visible }: Props) {
           document={document}
           invitedInSession={invitedInSession}
           share={share}
-          sharedParent={sharedParent}
+          sharedParents={sharedParents}
           visible={visible}
           onRequestClose={onRequestClose}
         />

@@ -1,6 +1,6 @@
 import type { Location } from "history";
 import { observer } from "mobx-react";
-import { PlusIcon } from "outline-icons";
+import { GlobeIcon, PlusIcon } from "outline-icons";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { mergeRefs } from "react-merge-refs";
@@ -17,10 +17,12 @@ import CollectionIcon from "~/components/Icons/CollectionIcon";
 import NudeButton from "~/components/NudeButton";
 import Tooltip from "~/components/Tooltip";
 import useBoolean from "~/hooks/useBoolean";
+import useCurrentTeam from "~/hooks/useCurrentTeam";
 import useCurrentUser from "~/hooks/useCurrentUser";
 import usePolicy from "~/hooks/usePolicy";
 import useStores from "~/hooks/useStores";
 import CollectionMenu from "~/menus/CollectionMenu";
+import { NotFoundError } from "~/utils/errors";
 import { documentEditPath } from "~/utils/routeHelpers";
 import { useDropToChangeCollection } from "../hooks/useDragAndDrop";
 import DropToImport from "./DropToImport";
@@ -52,13 +54,17 @@ const CollectionLink: React.FC<Props> = ({
 }: Props) => {
   const [menuOpen, handleMenuOpen, handleMenuClose] = useBoolean();
   const [isEditing, setIsEditing] = React.useState(false);
-  const { documents } = useStores();
+  const { documents, shares } = useStores();
   const history = useHistory();
   const can = usePolicy(collection);
   const { t } = useTranslation();
   const sidebarContext = useSidebarContext();
+  const team = useCurrentTeam();
   const user = useCurrentUser();
   const editableTitleRef = React.useRef<RefHandle>(null);
+  const share = shares.getByCollectionId(collection.id);
+  const isPubliclyShared =
+    team.sharing !== false && collection.sharing !== false && share?.published;
 
   const handleTitleChange = React.useCallback(
     async (name: string) => {
@@ -84,7 +90,12 @@ const CollectionLink: React.FC<Props> = ({
 
   const handlePrefetch = React.useCallback(() => {
     void collection.fetchDocuments();
-  }, [collection]);
+    void shares.fetchOne({ collectionId: collection.id }).catch((err) => {
+      if (!(err instanceof NotFoundError)) {
+        throw err;
+      }
+    });
+  }, [collection, shares]);
 
   const handleRename = React.useCallback(() => {
     editableTitleRef.current?.setIsEditing(true);
@@ -166,6 +177,16 @@ const CollectionLink: React.FC<Props> = ({
               !isEditing &&
               !isDraggingAnyCollection && (
                 <Fade>
+                  {isPubliclyShared ? (
+                    <Tooltip content={t("Public sharing enabled")} delay={500}>
+                      <NudeButton
+                        aria-label={t("Public sharing enabled")}
+                        onClick={(ev) => ev.preventDefault()}
+                      >
+                        <GlobeIcon />
+                      </NudeButton>
+                    </Tooltip>
+                  ) : null}
                   {can.createDocument && (
                     <Tooltip content={t("New doc")} delay={500}>
                       <NudeButton

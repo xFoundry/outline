@@ -6,6 +6,7 @@ import webpackStats from "rollup-plugin-webpack-stats";
 import type { ServerOptions } from "vite";
 import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
+import { brand } from "./shared/utils/brand";
 import environment from "./server/utils/environment";
 
 let httpsConfig: ServerOptions["https"] | undefined;
@@ -93,8 +94,8 @@ export default () =>
           ],
         },
         manifest: {
-          name: "Outline",
-          short_name: "Outline",
+          name: brand.name,
+          short_name: brand.name,
           theme_color: "#fff",
           background_color: "#fff",
           start_url: "/",

@@ -2,7 +2,7 @@ import * as React from "react";
 import styled from "styled-components";
 import { depths, s } from "@shared/styles";
 import env from "~/env";
-import OutlineIcon from "./Icons/OutlineIcon";
+import BrandIcon from "./Icons/BrandIcon";
 
 type Props = {
   href?: string;
@@ -11,7 +11,7 @@ type Props = {
 function Branding({ href = env.URL }: Props) {
   return (
     <Link href={href} target="_blank">
-      <OutlineIcon size={20} />
+      <BrandIcon size={20} alt="" />
       &nbsp;{env.APP_NAME}
     </Link>
   );
@@ -29,8 +29,9 @@ const Link = styled.a`
   display: flex;
   align-items: center;
 
-  svg {
-    fill: ${s("text")};
+  img {
+    display: block;
+    flex-shrink: 0;
   }
 
   z-index: ${depths.sidebar + 1};

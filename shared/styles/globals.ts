@@ -95,6 +95,7 @@ export default createGlobalStyle<Props>`
   h4,
   h5,
   h6 {
+    font-family: ${s("fontFamilyHeading")};
     font-weight: 500;
     line-height: var(--line-height-h);
     margin-top: 1em;

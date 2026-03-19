@@ -1,6 +1,7 @@
 import { observer } from "mobx-react";
 import { CodeIcon } from "outline-icons";
 import { useTranslation, Trans } from "react-i18next";
+import { UrlHelper } from "@shared/utils/UrlHelper";
 import type ApiKey from "~/models/ApiKey";
 import { Action } from "~/components/Actions";
 import Button from "~/components/Button";
@@ -46,7 +47,7 @@ function ApiKeys() {
           components={{
             em: (
               <a
-                href="https://www.getoutline.com/developers"
+                href={UrlHelper.developers}
                 target="_blank"
                 rel="noreferrer"
               />

@@ -1,6 +1,7 @@
 import { observer } from "mobx-react";
 import { PadlockIcon } from "outline-icons";
 import { useTranslation, Trans } from "react-i18next";
+import { UrlHelper } from "@shared/utils/UrlHelper";
 import type ApiKey from "~/models/ApiKey";
 import type OAuthAuthentication from "~/models/oauth/OAuthAuthentication";
 import { Action } from "~/components/Actions";
@@ -54,7 +55,7 @@ function APIAndAccess() {
             components={{
               em: (
                 <a
-                  href="https://www.getoutline.com/developers"
+                  href={UrlHelper.developers}
                   target="_blank"
                   rel="noreferrer"
                 />

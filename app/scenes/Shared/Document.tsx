@@ -7,6 +7,7 @@ import { useDocumentContext } from "~/components/DocumentContext";
 import { useTeamContext } from "~/components/TeamContext";
 import { useEffect, useMemo, useRef } from "react";
 import { parseDomain } from "@shared/utils/domains";
+import { UrlHelper } from "@shared/utils/UrlHelper";
 import useCurrentUser from "~/hooks/useCurrentUser";
 import Branding from "~/components/Branding";
 import useShare from "@shared/hooks/useShare";
@@ -60,7 +61,7 @@ function SharedDocument({ document }: Props) {
         readOnly
       />
       {showBranding ? (
-        <Branding href="//www.getoutline.com?ref=sharelink" />
+        <Branding href={`${UrlHelper.home}?ref=sharelink`} />
       ) : null}
     </>
   );

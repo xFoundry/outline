@@ -128,20 +128,22 @@ export default class SharesStore extends Store<Share> {
     }
   }
 
-  getByDocumentParents = (document: Document): Share | undefined => {
+  getAllByDocumentParents = (document: Document): Share[] => {
+    const result: Share[] = [];
+
     const collectionShare = document.collectionId
       ? this.getByCollectionId(document.collectionId)
       : undefined;
 
     if (collectionShare?.published) {
-      return collectionShare;
+      result.push(collectionShare);
     }
 
     const collection = document.collectionId
       ? this.rootStore.collections.get(document.collectionId)
       : undefined;
     if (!collection) {
-      return;
+      return result;
     }
 
     const parentIds = collection
@@ -153,12 +155,15 @@ export default class SharesStore extends Store<Share> {
       const share = this.getByDocumentId(parentId);
 
       if (share?.includeChildDocuments && share.published) {
-        return share;
+        result.push(share);
       }
     }
 
-    return undefined;
+    return result;
   };
+
+  getByDocumentParents = (document: Document): Share | undefined =>
+    this.getAllByDocumentParents(document)[0];
 
   getByCollectionId = (collectionId: string): Share | null | undefined =>
     find(this.orderedData, (share) => share.collectionId === collectionId);

@@ -1,6 +1,7 @@
 import { observer } from "mobx-react";
 import { InternetIcon } from "outline-icons";
 import { useTranslation, Trans } from "react-i18next";
+import { UrlHelper } from "@shared/utils/UrlHelper";
 import type OAuthClient from "~/models/oauth/OAuthClient";
 import { Action } from "~/components/Actions";
 import Button from "~/components/Button";
@@ -45,7 +46,7 @@ function Applications() {
           components={{
             em: (
               <a
-                href="https://www.getoutline.com/developers"
+                href={UrlHelper.developers}
                 target="_blank"
                 rel="noreferrer"
               />
