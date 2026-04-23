@@ -157,13 +157,27 @@ export function MediaDimension() {
         width: finalWidth,
         height: finalHeight,
       });
+    } else if (nodeType === "video") {
+      commands["resizeVideo"]({
+        width: finalWidth,
+        height: finalHeight,
+      });
     } else if (nodeType === "attachment") {
       commands["resizeAttachment"]({
         width: finalWidth,
         height: finalHeight,
       });
     }
-  }, [commands, width, height, localDimension, nodeType, error, reset]);
+  }, [
+    commands,
+    width,
+    height,
+    localDimension,
+    nodeType,
+    error,
+    reset,
+    isOutsideBounds,
+  ]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -184,7 +198,7 @@ export function MediaDimension() {
     ) {
       reset();
     }
-  }, [width, height, reset]);
+  }, [height, localDimension.height, localDimension.width, reset, width]);
 
   // hacky debounce for checking error.
   useEffect(() => {
@@ -212,7 +226,7 @@ export function MediaDimension() {
   return (
     <StyledFlex ref={ref} align="center">
       <StyledInput
-        label={t("Image width")}
+        label={t("Width")}
         labelHidden
         placeholder={t("Width")}
         value={localDimension.width}
@@ -225,7 +239,7 @@ export function MediaDimension() {
         ×
       </Text>
       <StyledInput
-        label={t("Image height")}
+        label={t("Height")}
         labelHidden
         placeholder={t("Height")}
         value={localDimension.height}

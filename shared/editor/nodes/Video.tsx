@@ -272,6 +272,28 @@ export default class Video extends Node {
         dispatch?.(state.tr.deleteSelection());
         return true;
       },
+      resizeVideo:
+        ({ width, height }: { width: number; height: number }): Command =>
+        (state, dispatch) => {
+          if (!(state.selection instanceof NodeSelection)) {
+            return false;
+          }
+
+          const { selection } = state;
+          const transformedAttrs = {
+            ...state.selection.node.attrs,
+            width,
+            height,
+          };
+
+          const tr = state.tr
+            .setNodeMarkup(selection.from, undefined, transformedAttrs)
+            .setMeta("addToHistory", true);
+
+          const $pos = tr.doc.resolve(selection.from);
+          dispatch?.(tr.setSelection(new NodeSelection($pos)));
+          return true;
+        },
     };
   }
 
