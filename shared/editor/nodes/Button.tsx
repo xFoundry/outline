@@ -1,12 +1,13 @@
-import { NodeSpec, NodeType, Node as ProsemirrorNode } from "prosemirror-model";
-import { Command, NodeSelection } from "prosemirror-state";
+import type { NodeSpec, NodeType, Node as ProsemirrorNode } from "prosemirror-model";
+import type { Command} from "prosemirror-state";
+import { NodeSelection } from "prosemirror-state";
 import * as React from "react";
 import styled from "styled-components";
-import { Primitive } from "utility-types";
+import type { Primitive } from "utility-types";
 import { s } from "../../styles";
 import { sanitizeUrl } from "../../utils/urls";
-import { MarkdownSerializerState } from "../lib/markdown/serializer";
-import { ComponentProps } from "../types";
+import type { MarkdownSerializerState } from "../lib/markdown/serializer";
+import type { ComponentProps } from "../types";
 import Node from "./Node";
 
 type ButtonVariant = "primary" | "secondary" | "outline";
