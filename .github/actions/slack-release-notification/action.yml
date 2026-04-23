@@ -1,0 +1,154 @@
+name: Slack Release Notification
+description: Post a release notification to Slack with optional deep links to internal release notes.
+
+inputs:
+  slack_webhook_url:
+    description: Slack incoming webhook URL.
+    required: true
+  repository:
+    description: GitHub repository in owner/name format.
+    required: true
+  release_name:
+    description: Release name shown in Slack. Falls back to the tag when empty.
+    required: false
+    default: ""
+  release_tag:
+    description: Release tag name.
+    required: true
+  release_html_url:
+    description: GitHub release URL.
+    required: true
+  release_author:
+    description: GitHub login of the release author.
+    required: false
+    default: ""
+  release_prerelease:
+    description: Whether the release is a prerelease.
+    required: false
+    default: "false"
+  release_body:
+    description: Release notes markdown body from the GitHub release.
+    required: false
+    default: ""
+  release_notes_url:
+    description: Exact URL to the release notes for this release. If provided, it takes precedence.
+    required: false
+    default: ""
+  release_notes_base_url:
+    description: Base URL for a releases page. The action appends a per-release anchor derived from the tag.
+    required: false
+    default: ""
+  release_notes_link_label:
+    description: Label for the primary release link when an internal release notes URL is provided.
+    required: false
+    default: Release
+
+runs:
+  using: composite
+  steps:
+    - name: Build Slack payload
+      id: payload
+      shell: bash
+      env:
+        INPUT_REPOSITORY: ${{ inputs.repository }}
+        INPUT_RELEASE_NAME: ${{ inputs.release_name }}
+        INPUT_RELEASE_TAG: ${{ inputs.release_tag }}
+        INPUT_RELEASE_HTML_URL: ${{ inputs.release_html_url }}
+        INPUT_RELEASE_AUTHOR: ${{ inputs.release_author }}
+        INPUT_RELEASE_PRERELEASE: ${{ inputs.release_prerelease }}
+        INPUT_RELEASE_BODY: ${{ inputs.release_body }}
+        INPUT_RELEASE_NOTES_URL: ${{ inputs.release_notes_url }}
+        INPUT_RELEASE_NOTES_BASE_URL: ${{ inputs.release_notes_base_url }}
+        INPUT_RELEASE_NOTES_LINK_LABEL: ${{ inputs.release_notes_link_label }}
+      run: |
+        node <<'NODE' >> "$GITHUB_OUTPUT"
+        const maxNotesLength = 2800;
+        const fallbackNotes = "No release notes provided.";
+        const truncatedSuffix =
+          "\n\n_Release notes truncated. Open the full release notes for the rest._";
+
+        const repository = process.env.INPUT_REPOSITORY;
+        const releaseTag = process.env.INPUT_RELEASE_TAG;
+        const releaseName = (process.env.INPUT_RELEASE_NAME || "").trim() || releaseTag;
+        const releaseHtmlUrl = process.env.INPUT_RELEASE_HTML_URL;
+        const releaseAuthor = (process.env.INPUT_RELEASE_AUTHOR || "").trim();
+        const releaseNotesUrl = (process.env.INPUT_RELEASE_NOTES_URL || "").trim();
+        const releaseNotesBaseUrl = (process.env.INPUT_RELEASE_NOTES_BASE_URL || "")
+          .trim()
+          .replace(/\/+$/, "");
+        const releaseNotesLinkLabel =
+          (process.env.INPUT_RELEASE_NOTES_LINK_LABEL || "").trim() || "Release";
+        const isPreRelease = (process.env.INPUT_RELEASE_PRERELEASE || "").trim() === "true";
+
+        const rawNotes = (process.env.INPUT_RELEASE_BODY || "").trim();
+        let notes = rawNotes || fallbackNotes;
+
+        if (notes.length > maxNotesLength) {
+          notes = `${notes.slice(0, maxNotesLength - truncatedSuffix.length).trimEnd()}${truncatedSuffix}`;
+        }
+
+        const anchorId = `release-${releaseTag
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "")}`;
+        const resolvedReleaseNotesUrl =
+          releaseNotesUrl || (releaseNotesBaseUrl ? `${releaseNotesBaseUrl}#${anchorId}` : "");
+        const primaryLinkLabel = resolvedReleaseNotesUrl ? releaseNotesLinkLabel : "Release";
+        const primaryReleaseUrl = resolvedReleaseNotesUrl || releaseHtmlUrl;
+
+        const summaryLines = [
+          ":rocket: *New release published*",
+          `*Repository:* \`${repository}\``,
+          `*${primaryLinkLabel}:* <${primaryReleaseUrl}|${releaseName}>`,
+          `*Tag:* \`${releaseTag}\``,
+        ];
+
+        if (
+          resolvedReleaseNotesUrl &&
+          releaseHtmlUrl &&
+          resolvedReleaseNotesUrl !== releaseHtmlUrl
+        ) {
+          summaryLines.push(`*GitHub:* <${releaseHtmlUrl}|Source release>`);
+        }
+
+        const payload = {
+          text: `New release published for ${repository}: ${releaseTag}`,
+          blocks: [
+            {
+              type: "section",
+              text: {
+                type: "mrkdwn",
+                text: summaryLines.join("\n"),
+              },
+            },
+            {
+              type: "divider",
+            },
+            {
+              type: "section",
+              text: {
+                type: "mrkdwn",
+                text: `*Release notes:*\n${notes}`,
+              },
+            },
+            {
+              type: "context",
+              elements: [
+                ...(releaseAuthor
+                  ? [{ type: "mrkdwn", text: `Author \`${releaseAuthor}\`` }]
+                  : []),
+                { type: "mrkdwn", text: isPreRelease ? "Pre-release" : "Full release" },
+              ],
+            },
+          ],
+        };
+
+        process.stdout.write(`payload<<__PAYLOAD__\n${JSON.stringify(payload)}\n__PAYLOAD__\n`);
+        NODE
+
+    - name: Post release notification to Slack
+      uses: slackapi/slack-github-action@v3.0.1
+      with:
+        webhook: ${{ inputs.slack_webhook_url }}
+        webhook-type: incoming-webhook
+        payload: ${{ steps.payload.outputs.payload }}

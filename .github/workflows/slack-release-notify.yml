@@ -1,0 +1,28 @@
+name: Slack Release Notification
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  notify-slack:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Post release notification
+        uses: ./.github/actions/slack-release-notification
+        with:
+          slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          repository: ${{ github.repository }}
+          release_name: ${{ github.event.release.name || github.event.release.tag_name }}
+          release_tag: ${{ github.event.release.tag_name }}
+          release_html_url: ${{ github.event.release.html_url }}
+          release_author: ${{ github.event.release.author.login }}
+          release_prerelease: ${{ github.event.release.prerelease }}
+          release_body: ${{ github.event.release.body }}
+          release_notes_base_url: ${{ vars.RELEASES_PAGE_BASE_URL }}
