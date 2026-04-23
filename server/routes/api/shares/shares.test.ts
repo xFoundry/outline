@@ -1,6 +1,7 @@
 import { CollectionPermission } from "@shared/types";
 import { createContext } from "@server/context";
 import { UserMembership, Share } from "@server/models";
+import { sequelize } from "@server/storage/database";
 import {
   buildUser,
   buildDocument,
@@ -13,6 +14,10 @@ import {
 import { getTestServer } from "@server/test/support";
 
 const server = getTestServer();
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
 
 describe("#shares.list", () => {
   it("should fail with status 400 bad request when an invalid sort value is suppled", async () => {
@@ -297,6 +302,25 @@ describe("#shares.create", () => {
     expect(res.status).toEqual(200);
     expect(body.data.published).toBe(false);
     expect(body.data.documentTitle).toBe(document.title);
+  });
+
+  it("should not open a request transaction", async () => {
+    const transactionSpy = jest.spyOn(sequelize, "transaction");
+    const user = await buildUser();
+    const document = await buildDocument({
+      userId: user.id,
+      teamId: user.teamId,
+    });
+
+    const res = await server.post("/api/shares.create", {
+      body: {
+        token: user.getJwtToken(),
+        documentId: document.id,
+      },
+    });
+
+    expect(res.status).toEqual(200);
+    expect(transactionSpy).not.toHaveBeenCalled();
   });
 
   it("should allow creating a published share record for document", async () => {

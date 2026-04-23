@@ -20,6 +20,10 @@ class MockStorage extends BaseStorage {
     return null;
   }
 
+  async stat() {
+    return { size: 0 };
+  }
+
   getUploadUrl() {
     return "https://storage.example.com";
   }

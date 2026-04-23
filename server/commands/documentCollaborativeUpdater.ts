@@ -4,10 +4,15 @@ import { yDocToProsemirrorJSON } from "y-prosemirror";
 import * as Y from "yjs";
 import type { ProsemirrorData } from "@shared/types";
 import Logger from "@server/logging/Logger";
+import Metrics from "@server/logging/Metrics";
 import { Document, Event } from "@server/models";
 import { sequelize } from "@server/storage/database";
 import { AuthenticationType } from "@server/types";
 import semver from "semver";
+import {
+  isCollaborativeAcquireTimeoutError,
+  isCollaborativeLockTimeoutError,
+} from "@server/collaboration/documentPersistence";
 
 type Props = {
   /** The document ID to update. */
@@ -20,6 +25,8 @@ type Props = {
   isLastConnection: boolean;
   /** The client version, if available. */
   clientVersion: string | null;
+  /** Retry count for observability. */
+  retryCount?: number;
 };
 
 export default async function documentCollaborativeUpdater({
@@ -28,15 +35,34 @@ export default async function documentCollaborativeUpdater({
   sessionCollaboratorIds,
   isLastConnection,
   clientVersion,
+  retryCount = 0,
 }: Props) {
-  return sequelize.transaction(async (transaction) => {
-    await sequelize.query(`SET LOCAL lock_timeout = '15s';`, {
-      transaction,
-    });
+  const startedAt = Date.now();
+  const state = Buffer.from(Y.encodeStateAsUpdate(ydoc));
+  const content = yDocToProsemirrorJSON(ydoc, "default") as ProsemirrorData;
+  const pud = new Y.PermanentUserData(ydoc);
+  const pudIds = Array.from(pud.clients.values());
+  const sessionCollaborators = uniq([...sessionCollaboratorIds, ...pudIds]);
 
-    const document = await Document.unscoped()
-      .scope("withoutState")
-      .findOne({
+  try {
+    return await sequelize.transaction(async (transaction) => {
+      await sequelize.query(`SET LOCAL lock_timeout = '2s';`, {
+        transaction,
+      });
+
+      const document = await Document.unscoped().findOne({
+        attributes: [
+          "id",
+          "collectionId",
+          "teamId",
+          "title",
+          "content",
+          "state",
+          "deletedAt",
+          "lastModifiedById",
+          "collaboratorIds",
+          "editorVersion",
+        ],
         where: {
           id: documentId,
         },
@@ -49,72 +75,91 @@ export default async function documentCollaborativeUpdater({
         paranoid: false,
       });
 
-    const state = Y.encodeStateAsUpdate(ydoc);
-    const content = yDocToProsemirrorJSON(ydoc, "default") as ProsemirrorData;
-    const isUnchanged = isEqual(document.content, content);
-    const isDeleted = !!document.deletedAt;
-    const lastModifiedById = isDeleted
-      ? document.lastModifiedById
-      : (sessionCollaboratorIds[sessionCollaboratorIds.length - 1] ??
-        document.lastModifiedById);
+      const stateUnchanged = document.state
+        ? Buffer.compare(Buffer.from(document.state), state) === 0
+        : false;
+      const contentUnchanged = isEqual(document.content, content);
 
-    if (isUnchanged) {
-      return;
+      if (stateUnchanged && contentUnchanged) {
+        return;
+      }
+
+      const lastModifiedById = document.deletedAt
+        ? document.lastModifiedById
+        : (sessionCollaboratorIds[sessionCollaboratorIds.length - 1] ??
+          document.lastModifiedById);
+      const collaboratorIds = uniq([
+        ...(document.collaboratorIds ?? []),
+        ...sessionCollaborators,
+      ]);
+      const editorVersion =
+        document.editorVersion && clientVersion
+          ? semver.gt(clientVersion, document.editorVersion)
+            ? clientVersion
+            : document.editorVersion
+          : clientVersion
+            ? clientVersion
+            : document.editorVersion;
+
+      Logger.info(
+        "multiplayer",
+        `Persisting ${documentId}, attributed to ${lastModifiedById}`
+      );
+
+      await document.update(
+        {
+          content,
+          state,
+          lastModifiedById,
+          collaboratorIds,
+          editorVersion,
+        },
+        {
+          transaction,
+          // Hooks MUST NOT be called or the AfterUpdate hook in Document model may
+          // result in infinite processing.
+          hooks: false,
+        }
+      );
+
+      await Event.schedule({
+        name: "documents.update",
+        documentId: document.id,
+        collectionId: document.collectionId,
+        teamId: document.teamId,
+        actorId: lastModifiedById,
+        authType: AuthenticationType.APP,
+        data: {
+          multiplayer: true,
+          title: document.title,
+          done: isLastConnection,
+        },
+      });
+    });
+  } catch (error) {
+    if (isCollaborativeLockTimeoutError(error)) {
+      Metrics.increment("collaboration.persist.lock_timeout");
     }
 
-    Logger.info(
-      "multiplayer",
-      `Persisting ${documentId}, attributed to ${lastModifiedById}`
-    );
+    if (isCollaborativeAcquireTimeoutError(error)) {
+      Metrics.increment("collaboration.persist.acquire_timeout");
+    }
 
-    // extract collaborators from doc user data
-    const pud = new Y.PermanentUserData(ydoc);
-    const pudIds = Array.from(pud.clients.values());
-    const collaboratorIds = uniq([
-      ...document.collaboratorIds,
-      ...sessionCollaboratorIds,
-      ...pudIds,
-    ]);
+    throw error;
+  } finally {
+    const duration = Date.now() - startedAt;
+    Metrics.gauge("collaboration.persist.duration_ms", duration);
 
-    // Either the client or server version could be null, or they could both be
-    // set. In that case we want to use the greater (newer) version.
-    const editorVersion =
-      document.editorVersion && clientVersion
-        ? semver.gt(clientVersion, document.editorVersion)
-          ? clientVersion
-          : document.editorVersion
-        : clientVersion
-          ? clientVersion
-          : document.editorVersion;
+    if (retryCount > 0) {
+      Metrics.increment("collaboration.persist.retry");
+    }
 
-    await document.update(
-      {
-        content,
-        state: Buffer.from(state),
-        lastModifiedById,
-        collaboratorIds,
-        editorVersion,
-      },
-      {
-        transaction,
-        // Hooks MUST NOT be called or the AfterUpdate hook in Document model may
-        // result in infinite processing.
-        hooks: false,
-      }
-    );
-
-    await Event.schedule({
-      name: "documents.update",
-      documentId: document.id,
-      collectionId: document.collectionId,
-      teamId: document.teamId,
-      actorId: lastModifiedById,
-      authType: AuthenticationType.APP,
-      data: {
-        multiplayer: true,
-        title: document.title,
-        done: isLastConnection,
-      },
-    });
-  });
+    if (duration > 1000) {
+      Logger.warn("Collaborative persistence exceeded threshold", {
+        documentId,
+        durationMs: duration,
+        retryCount,
+      });
+    }
+  }
 }

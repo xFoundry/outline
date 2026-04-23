@@ -15,7 +15,7 @@ import Switch from "~/components/Switch";
 import Text from "~/components/Text";
 import useCurrentTeam from "~/hooks/useCurrentTeam";
 import useStores from "~/hooks/useStores";
-import isCloudHosted from "~/utils/isCloudHosted";
+import { isWorkspaceRouting } from "~/utils/isCloudHosted";
 import SettingRow from "./components/SettingRow";
 
 function Security() {
@@ -228,7 +228,7 @@ function Security() {
           onChange={handleMembersCanInviteChange}
         />
       </SettingRow>
-      {isCloudHosted && (
+      {isWorkspaceRouting && (
         <SettingRow
           label={t("Require invites")}
           name="inviteRequired"
@@ -348,7 +348,7 @@ function Security() {
           onChange={handleMemberCollectionCreateChange}
         />
       </SettingRow>
-      {isCloudHosted && (
+      {isWorkspaceRouting && (
         <SettingRow
           label={t("Workspace creation")}
           name="memberTeamCreate"

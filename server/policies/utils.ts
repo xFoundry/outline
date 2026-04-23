@@ -112,6 +112,16 @@ export function isCloudHosted() {
 }
 
 /**
+ * Check if this instance has workspace subdomain routing enabled.
+ */
+export function hasWorkspaceSubdomains() {
+  if (!env.hasWorkspaceSubdomains) {
+    return false;
+  }
+  return true;
+}
+
+/**
  * Check if the actor is an admin of the group.
  *
  * @param actor The actor to check

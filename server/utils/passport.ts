@@ -57,7 +57,7 @@ export class StateStore {
 
     ctx.cookies.set(this.key, state, {
       expires: addMinutes(new Date(), 10),
-      domain: getCookieDomain(ctx.hostname, env.isCloudHosted),
+      domain: getCookieDomain(ctx.hostname, env.hasWorkspaceSubdomains),
     });
 
     callback(null, token);
@@ -83,7 +83,7 @@ export class StateStore {
     // Destroy the one-time pad token and ensure it matches
     ctx.cookies.set(this.key, "", {
       expires: subMinutes(new Date(), 1),
-      domain: getCookieDomain(ctx.hostname, env.isCloudHosted),
+      domain: getCookieDomain(ctx.hostname, env.hasWorkspaceSubdomains),
     });
 
     if (!token || token !== providedToken) {
@@ -238,7 +238,7 @@ export async function getTeamFromContext(
   const domain = parseDomain(host);
 
   let team;
-  if (!env.isCloudHosted) {
+  if (!env.hasWorkspaceSubdomains) {
     if (env.ENVIRONMENT === "test") {
       team = await Team.findOne({ where: { domain: env.URL } });
     } else {

@@ -9,7 +9,6 @@ import { presentView } from "@server/presenters";
 import type { APIContext } from "@server/types";
 import { RateLimiterStrategy } from "@server/utils/RateLimiter";
 import * as T from "./schema";
-import { transaction } from "@server/middlewares/transaction";
 
 const router = new Router();
 
@@ -43,7 +42,6 @@ router.post(
   rateLimiter(RateLimiterStrategy.OneThousandPerHour),
   auth(),
   validate(T.ViewsCreateSchema),
-  transaction(),
   async (ctx: APIContext<T.ViewsCreateReq>) => {
     const { documentId } = ctx.input.body;
     const { user } = ctx.state.auth;

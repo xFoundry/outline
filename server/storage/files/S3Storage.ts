@@ -217,6 +217,19 @@ export default class S3Storage extends BaseStorage {
       .catch(() => false);
   }
 
+  public async stat(key: string) {
+    const response = await this.client.send(
+      new HeadObjectCommand({
+        Bucket: this.getBucket(),
+        Key: key,
+      })
+    );
+
+    return {
+      size: Number(response.ContentLength ?? 0),
+    };
+  }
+
   public moveFile = async (fromKey: string, toKey: string) => {
     await this.client.send(
       new CopyObjectCommand({

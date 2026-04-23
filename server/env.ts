@@ -807,6 +807,17 @@ export class Environment {
     this.toOptionalNumber(environment.POPULARITY_UPDATE_INTERVAL_HOURS) ?? 12;
 
   /**
+   * When true, enables workspace subdomain routing on self-hosted installations.
+   * This allows multiple teams to coexist on a single instance, each accessible
+   * via their own subdomain (e.g., team1.example.com, team2.example.com).
+   */
+  @Public
+  @IsBoolean()
+  public HOSTED_WORKSPACE_ROUTING = this.toBoolean(
+    environment.HOSTED_WORKSPACE_ROUTING ?? "false"
+  );
+
+  /**
    * Returns true if the current installation is the cloud hosted version at
    * getoutline.com
    */
@@ -816,6 +827,14 @@ export class Environment {
       "https://app.outline.dev",
       "https://app.outline.dev:3000",
     ].includes(this.URL);
+  }
+
+  /**
+   * Returns true if workspace subdomain routing is enabled, either because this
+   * is the cloud hosted version or because HOSTED_WORKSPACE_ROUTING is set.
+   */
+  public get hasWorkspaceSubdomains() {
+    return this.isCloudHosted || this.HOSTED_WORKSPACE_ROUTING;
   }
 
   /**

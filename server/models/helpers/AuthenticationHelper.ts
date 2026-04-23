@@ -25,7 +25,7 @@ export default class AuthenticationHelper {
    * @returns A promise resolving to a list of authentication providers
    */
   public static async providersForTeam(team?: Team) {
-    const isCloudHosted = env.isCloudHosted;
+    const isWorkspaceRouting = env.hasWorkspaceSubdomains;
 
     // Only check passkeys count if the team has passkeys enabled, to avoid
     // an unnecessary database query in the common case.
@@ -75,8 +75,8 @@ export default class AuthenticationHelper {
         // If self-hosted then it must not be actively disabled, otherwise all
         // providers are considered.
         return (
-          (!isCloudHosted && authProvider?.enabled !== false) ||
-          (isCloudHosted && authProvider?.enabled)
+          (!isWorkspaceRouting && authProvider?.enabled !== false) ||
+          (isWorkspaceRouting && authProvider?.enabled)
         );
       });
   }

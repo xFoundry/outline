@@ -97,11 +97,11 @@ class Team extends ParanoidModel<
   @Unique
   @Length({
     min: TeamValidation.minSubdomainLength,
-    max: env.isCloudHosted
+    max: env.hasWorkspaceSubdomains
       ? TeamValidation.maxSubdomainLength
       : TeamValidation.maxSubdomainSelfHostedLength,
     msg: `subdomain must be between ${TeamValidation.minSubdomainLength} and ${
-      env.isCloudHosted
+      env.hasWorkspaceSubdomains
         ? TeamValidation.maxSubdomainLength
         : TeamValidation.maxSubdomainSelfHostedLength
     } characters`,
@@ -234,7 +234,7 @@ class Team extends ParanoidModel<
       return `${url.protocol}//${this.domain}${url.port ? `:${url.port}` : ""}`;
     }
 
-    if (!this.subdomain || !env.isCloudHosted) {
+    if (!this.subdomain || !env.hasWorkspaceSubdomains) {
       return env.URL;
     }
 
@@ -348,19 +348,68 @@ class Team extends ParanoidModel<
    * @param force Whether to force the update even if the last update was recent
    * @returns A promise that resolves with the updated team
    */
-  public updateActiveAt = async (force = false) => {
-    const fiveMinutesAgo = subMinutes(new Date(), 5);
+  public static async touchActiveAt(
+    teamId: string,
+    options: {
+      force?: boolean;
+      lastActiveAt?: Date | null;
+    } = {}
+  ) {
+    const { force = false, lastActiveAt } = options;
+    const now = new Date();
+    const fiveMinutesAgo = subMinutes(now, 5);
 
-    // ensure this is updated only every few minutes otherwise
-    // we'll be constantly writing to the DB as API requests happen
-    if (!this.lastActiveAt || this.lastActiveAt < fiveMinutesAgo || force) {
-      this.lastActiveAt = new Date();
+    if (!force && lastActiveAt && lastActiveAt >= fiveMinutesAgo) {
+      return false;
     }
 
-    // Save only writes to the database if there are changes
-    return this.save({
-      hooks: false,
+    const [updated] = await this.update(
+      {
+        lastActiveAt: now,
+      },
+      {
+        hooks: false,
+        where: force
+          ? {
+              id: teamId,
+            }
+          : {
+              id: teamId,
+              [Op.or]: [
+                {
+                  lastActiveAt: {
+                    [Op.lt]: fiveMinutesAgo,
+                  },
+                },
+                {
+                  lastActiveAt: {
+                    [Op.is]: null,
+                  },
+                },
+              ],
+            },
+      }
+    );
+
+    return updated > 0;
+  }
+
+  public updateActiveAt = async (force = false) => {
+    const now = new Date();
+    const fiveMinutesAgo = subMinutes(now, 5);
+    const shouldTouchTimestamp =
+      force || !this.lastActiveAt || this.lastActiveAt < fiveMinutesAgo;
+
+    await Team.touchActiveAt(this.id, {
+      force,
+      lastActiveAt: this.lastActiveAt,
     });
+
+    if (shouldTouchTimestamp) {
+      this.lastActiveAt = now;
+    }
+
+    return this;
   };
 
   public collectionIds = async function (paranoid = true) {

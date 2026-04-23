@@ -40,9 +40,19 @@ export default function auth(options: AuthenticationOptions = {}) {
       const { type, token, user, service, scope } =
         await validateAuthentication(ctx, options);
 
+      const userFlag = User.flagForContext(ctx);
       await Promise.all([
-        user.updateActiveAt(ctx),
-        user.team?.updateActiveAt(),
+        User.touchActiveAt(user.id, {
+          ip: ctx.request.ip,
+          lastActiveAt: user.lastActiveAt,
+          flags: user.flags,
+          flag: userFlag,
+        }),
+        user.team
+          ? Team.touchActiveAt(user.team.id, {
+              lastActiveAt: user.team.lastActiveAt,
+            })
+          : undefined,
       ]);
 
       ctx.state.auth = {

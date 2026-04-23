@@ -32,7 +32,7 @@ import {
 import useQuery from "~/hooks/useQuery";
 import useStores from "~/hooks/useStores";
 import Desktop from "~/utils/Desktop";
-import isCloudHosted from "~/utils/isCloudHosted";
+import isCloudHosted, { isWorkspaceRouting } from "~/utils/isCloudHosted";
 import { detectLanguage } from "~/utils/language";
 import { homePath } from "~/utils/routeHelpers";
 import AuthenticationProvider from "./components/AuthenticationProvider";
@@ -200,7 +200,7 @@ function Login({ children, onBack }: Props) {
   }
 
   const firstRun =
-    config.providers.length === 0 && !isCloudHosted && !config.name;
+    config.providers.length === 0 && !isWorkspaceRouting && !config.name;
   const hasMultipleProviders = config.providers.length > 1;
   const defaultProvider = find(
     config.providers,

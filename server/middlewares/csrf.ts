@@ -27,7 +27,7 @@ export function attachCSRFToken() {
       ctx.cookies.set(CSRF.cookieName, bundled, {
         httpOnly: false,
         sameSite: "lax",
-        domain: getCookieDomain(ctx.request.hostname, env.isCloudHosted),
+        domain: getCookieDomain(ctx.request.hostname, env.hasWorkspaceSubdomains),
       });
     }
 

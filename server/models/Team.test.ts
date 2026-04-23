@@ -1,6 +1,43 @@
 import { buildTeam, buildCollection } from "@server/test/factories";
+import Team from "./Team";
+
+beforeAll(() => {
+  jest.useFakeTimers().setSystemTime(new Date("2018-01-02T00:00:00.000Z"));
+});
+
+afterAll(() => {
+  jest.useRealTimers();
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
 
 describe("Team", () => {
+  describe("touchActiveAt", () => {
+    it("should skip writes inside the 5 minute window", async () => {
+      const team = await buildTeam({
+        lastActiveAt: null,
+      });
+
+      await Team.touchActiveAt(team.id, {
+        lastActiveAt: team.lastActiveAt,
+      });
+      await team.reload();
+
+      const firstActiveAt = team.lastActiveAt;
+      const updateSpy = jest.spyOn(Team, "update");
+
+      await Team.touchActiveAt(team.id, {
+        lastActiveAt: team.lastActiveAt,
+      });
+      await team.reload();
+
+      expect(updateSpy).not.toHaveBeenCalled();
+      expect(team.lastActiveAt).toEqual(firstActiveAt);
+    });
+  });
+
   describe("collectionIds", () => {
     it("should return non-private collection ids", async () => {
       const team = await buildTeam();

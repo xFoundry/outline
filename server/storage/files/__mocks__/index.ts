@@ -7,5 +7,7 @@ export default {
 
   getSignedUrl: jest.fn().mockReturnValue("http://s3mock"),
 
+  stat: jest.fn().mockResolvedValue({ size: 123 }),
+
   getPresignedPost: jest.fn().mockReturnValue({}),
 };

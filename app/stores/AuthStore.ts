@@ -14,7 +14,7 @@ import { client } from "~/utils/ApiClient";
 import Desktop from "~/utils/Desktop";
 import { deleteAllDatabases } from "~/utils/developer";
 import Logger from "~/utils/Logger";
-import isCloudHosted from "~/utils/isCloudHosted";
+import { isWorkspaceRouting } from "~/utils/isCloudHosted";
 import Store from "./base/Store";
 
 type PersistedData = Pick<
@@ -234,7 +234,7 @@ export default class AuthStore extends Store<Team> {
             return;
           }
         } else if (
-          isCloudHosted &&
+          isWorkspaceRouting &&
           parseDomain(hostname).teamSubdomain !== (data.team.subdomain ?? "")
         ) {
           window.location.href = `${data.team.url}${pathname}`;
@@ -347,7 +347,7 @@ export default class AuthStore extends Store<Team> {
       const sessions = JSON.parse(getCookie("sessions") || "{}");
       delete sessions[team.id];
       setCookie("sessions", JSON.stringify(sessions), {
-        domain: getCookieDomain(window.location.hostname, isCloudHosted),
+        domain: getCookieDomain(window.location.hostname, isWorkspaceRouting),
       });
     }
 

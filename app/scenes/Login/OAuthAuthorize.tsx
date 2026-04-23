@@ -23,7 +23,7 @@ import {
   BadRequestError,
   NotFoundError,
 } from "~/utils/errors";
-import isCloudHosted from "~/utils/isCloudHosted";
+import { isWorkspaceRouting } from "~/utils/isCloudHosted";
 import { detectLanguage } from "~/utils/language";
 import Login from "./Login";
 import { OAuthScopeHelper } from "./OAuthScopeHelper";
@@ -46,7 +46,7 @@ export default function OAuthAuthorize() {
   const isAppRoot =
     parseDomain(window.location.hostname).host === parseDomain(env.URL).host;
   const hasLoggedInSessions = Object.keys(sessions).length > 0;
-  if (isCloudHosted && hasLoggedInSessions && isAppRoot) {
+  if (isWorkspaceRouting && hasLoggedInSessions && isAppRoot) {
     return <TeamSwitcher sessions={sessions} />;
   }
 

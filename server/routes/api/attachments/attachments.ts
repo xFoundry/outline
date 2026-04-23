@@ -289,16 +289,11 @@ const handleAttachmentsRedirect = async (
     }
   );
 
-  if (attachment.isStoredInPublicBucket) {
-    ctx.set("Cache-Control", `max-age=604800, immutable`);
-    ctx.redirect(attachment.canonicalUrl);
-  } else {
-    ctx.set(
-      "Cache-Control",
-      `max-age=${BaseStorage.defaultSignedUrlExpires}, immutable`
-    );
-    ctx.redirect(await attachment.signedUrl);
-  }
+  ctx.set(
+    "Cache-Control",
+    `max-age=${BaseStorage.defaultSignedUrlExpires}, immutable`
+  );
+  ctx.redirect(await attachment.signedUrl);
 };
 
 router.get(

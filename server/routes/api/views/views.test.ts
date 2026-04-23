@@ -1,6 +1,7 @@
 import { CollectionPermission } from "@shared/types";
 import { createContext } from "@server/context";
 import { View, UserMembership } from "@server/models";
+import { sequelize } from "@server/storage/database";
 import {
   buildAdmin,
   buildCollection,
@@ -11,6 +12,10 @@ import {
 import { getTestServer } from "@server/test/support";
 
 const server = getTestServer();
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
 
 describe("#views.list", () => {
   it("should return views for a document", async () => {
@@ -135,6 +140,25 @@ describe("#views.create", () => {
     const body = await res.json();
     expect(res.status).toEqual(200);
     expect(body.data.count).toBe(1);
+  });
+
+  it("should not open a request transaction", async () => {
+    const transactionSpy = jest.spyOn(sequelize, "transaction");
+    const user = await buildUser();
+    const document = await buildDocument({
+      userId: user.id,
+      teamId: user.teamId,
+    });
+
+    const res = await server.post("/api/views.create", {
+      body: {
+        token: user.getJwtToken(),
+        documentId: document.id,
+      },
+    });
+
+    expect(res.status).toEqual(200);
+    expect(transactionSpy).not.toHaveBeenCalled();
   });
 
   it("should allow creating a view record for document in read-only collection", async () => {

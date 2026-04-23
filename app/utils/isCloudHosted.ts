@@ -10,3 +10,10 @@ const isCloudHosted = [
 ].includes(env.URL);
 
 export default isCloudHosted;
+
+/**
+ * True if workspace subdomain routing is enabled (cloud hosted or self-hosted
+ * with HOSTED_WORKSPACE_ROUTING=true).
+ */
+export const isWorkspaceRouting =
+  isCloudHosted || env.HOSTED_WORKSPACE_ROUTING === true;

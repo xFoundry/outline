@@ -77,7 +77,7 @@ async function teamProvisioner(
     };
   } else if (teamId) {
     // The user is attempting to log into a team with an unfamiliar SSO provider
-    if (env.isCloudHosted) {
+    if (env.hasWorkspaceSubdomains) {
       const err = InvalidAuthenticationError();
       Logger.error("Authentication provider does not exist for team", err, {
         authenticationProvider,

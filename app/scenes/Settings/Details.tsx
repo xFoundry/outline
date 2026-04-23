@@ -27,7 +27,7 @@ import Text from "~/components/Text";
 import useCurrentTeam from "~/hooks/useCurrentTeam";
 import usePolicy from "~/hooks/usePolicy";
 import useStores from "~/hooks/useStores";
-import isCloudHosted from "~/utils/isCloudHosted";
+import { isWorkspaceRouting } from "~/utils/isCloudHosted";
 import TeamDelete from "../TeamDelete";
 import { ActionRow } from "./components/ActionRow";
 import ImageInput from "./components/ImageInput";
@@ -391,7 +391,7 @@ function Details() {
           <Heading as="h2">{t("Behavior")}</Heading>
 
           <SettingRow
-            visible={isCloudHosted}
+            visible={isWorkspaceRouting}
             label={t("Subdomain")}
             name="subdomain"
             description={
@@ -416,7 +416,7 @@ function Details() {
               autoComplete="off"
               minLength={TeamValidation.minSubdomainLength}
               maxLength={
-                isCloudHosted
+                isWorkspaceRouting
                   ? TeamValidation.maxSubdomainLength
                   : TeamValidation.maxSubdomainSelfHostedLength
               }

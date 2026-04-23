@@ -50,6 +50,13 @@ export default abstract class BaseStorage {
   ): Promise<NodeJS.ReadableStream | null>;
 
   /**
+   * Returns metadata for a file from the storage provider.
+   *
+   * @param key The path to the file
+   */
+  public abstract stat(key: string): Promise<{ size: number }>;
+
+  /**
    * Returns the upload URL for the storage provider.
    *
    * @param isServerUpload Whether the upload is happening on the server or not

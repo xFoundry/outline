@@ -6,7 +6,7 @@ import { UrlHelper } from "@shared/utils/UrlHelper";
 import type { Config } from "~/stores/AuthStore";
 import env from "~/env";
 import Desktop from "~/utils/Desktop";
-import isCloudHosted from "~/utils/isCloudHosted";
+import { isWorkspaceRouting } from "~/utils/isCloudHosted";
 
 type Props = {
   config?: Config;
@@ -25,7 +25,7 @@ export function BackButton({ onBack, config }: Props) {
     );
   }
 
-  if (!isCloudHosted || parseDomain(window.location.origin).custom) {
+  if (!isWorkspaceRouting || parseDomain(window.location.origin).custom) {
     return null;
   }
 

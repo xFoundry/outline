@@ -12,10 +12,64 @@ import { ProsemirrorHelper } from "@server/models/helpers/ProsemirrorHelper";
 import { sequelize } from "@server/storage/database";
 import Redis from "@server/storage/redis";
 import documentCollaborativeUpdater from "../commands/documentCollaborativeUpdater";
+import {
+  COLLABORATIVE_PERSISTENCE_RETRY_DELAY,
+  COLLABORATIVE_PERSISTENCE_RETRY_TTL,
+  encodeCollaborativeDocument,
+  getCollaborativePersistenceErrorReason,
+  getCollaborativePersistenceJobId,
+  getCollaborativePersistenceKey,
+  isRetryableCollaborativePersistenceError,
+} from "./documentPersistence";
+import CollaborativeDocumentPersistenceTask from "../queues/tasks/CollaborativeDocumentPersistenceTask";
 import type { withContext } from "./types";
 
 @trace()
 export default class PersistenceExtension implements Extension {
+  private async scheduleRetry({
+    document,
+    documentId,
+    sessionCollaboratorIds,
+    isLastConnection,
+    clientVersion,
+  }: {
+    document: Y.Doc;
+    documentId: string;
+    sessionCollaboratorIds: string[];
+    isLastConnection: boolean;
+    clientVersion: string | null;
+  }) {
+    const key = getCollaborativePersistenceKey(documentId);
+
+    await Redis.defaultClient.set(
+      key,
+      JSON.stringify({
+        documentId,
+        sessionCollaboratorIds,
+        isLastConnection,
+        clientVersion,
+        ydocState: encodeCollaborativeDocument(document),
+        retryCount: 1,
+      }),
+      "EX",
+      COLLABORATIVE_PERSISTENCE_RETRY_TTL
+    );
+
+    await new CollaborativeDocumentPersistenceTask()
+      .schedule(
+        {
+          documentId,
+        },
+        {
+          delay: COLLABORATIVE_PERSISTENCE_RETRY_DELAY,
+          jobId: getCollaborativePersistenceJobId(documentId),
+        }
+      )
+      .catch(() => {
+        // Ignore duplicate jobId errors while an existing retry is already queued.
+      });
+  }
+
   async onLoadDocument({
     documentName,
     ...data
@@ -135,6 +189,23 @@ export default class PersistenceExtension implements Extension {
         clientVersion,
       });
     } catch (err) {
+      if (isRetryableCollaborativePersistenceError(err)) {
+        await this.scheduleRetry({
+          document,
+          documentId,
+          sessionCollaboratorIds,
+          isLastConnection: clientsCount === 0,
+          clientVersion,
+        });
+
+        Logger.warn("Collaborative persistence will retry", {
+          documentId,
+          userId: context.user?.id,
+          reason: getCollaborativePersistenceErrorReason(err),
+        });
+        return;
+      }
+
       Logger.error("Unable to persist document", err, {
         documentId,
         userId: context.user?.id,

@@ -117,11 +117,20 @@ router.get(
     "/.well-known/oauth-authorization-server/mcp",
   ],
   async (ctx) => {
-    // Use the configured URL for self-hosted deployments to preserve the port when behind
-    // a reverse proxy that may strip the port from the Host header.
-    const origin = env.isCloudHosted
-      ? ctx.request.URL.origin
-      : new URL(env.URL).origin;
+    // For workspace-routing (cloud or self-hosted), derive origin from the request
+    // host since it could be any team subdomain. Use env.URL's protocol and port
+    // to handle reverse proxies that strip ports from the Host header.
+    let origin: string;
+    if (env.hasWorkspaceSubdomains) {
+      const envUrl = new URL(env.URL);
+      const requestOrigin = new URL(`${envUrl.protocol}//${ctx.request.hostname}`);
+      if (envUrl.port) {
+        requestOrigin.port = envUrl.port;
+      }
+      origin = requestOrigin.origin;
+    } else {
+      origin = new URL(env.URL).origin;
+    }
     const team = await getTeamFromContext(ctx, { includeStateCookie: false });
     const mcpEnabled = team?.getPreference(TeamPreference.MCP) ?? true;
 
@@ -157,11 +166,20 @@ router.get(
       return;
     }
 
-    // Use the configured URL for self-hosted deployments to preserve the port when behind
-    // a reverse proxy that may strip the port from the Host header.
-    const origin = env.isCloudHosted
-      ? ctx.request.URL.origin
-      : new URL(env.URL).origin;
+    // For workspace-routing (cloud or self-hosted), derive origin from the request
+    // host since it could be any team subdomain. Use env.URL's protocol and port
+    // to handle reverse proxies that strip ports from the Host header.
+    let origin: string;
+    if (env.hasWorkspaceSubdomains) {
+      const envUrl = new URL(env.URL);
+      const requestOrigin = new URL(`${envUrl.protocol}//${ctx.request.hostname}`);
+      if (envUrl.port) {
+        requestOrigin.port = envUrl.port;
+      }
+      origin = requestOrigin.origin;
+    } else {
+      origin = new URL(env.URL).origin;
+    }
 
     ctx.body = {
       resource: `${origin}/mcp`,
@@ -228,7 +246,7 @@ router.get("*", async (ctx, next) => {
 
   const team = await getTeamFromContext(ctx);
 
-  if (env.isCloudHosted) {
+  if (env.hasWorkspaceSubdomains) {
     // Redirect to main domain if no team is found
     if (!team || team.isSuspended) {
       if (env.isProduction && ctx.hostname !== parseDomain(env.URL).host) {

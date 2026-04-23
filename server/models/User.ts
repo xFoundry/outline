@@ -29,6 +29,7 @@ import {
   AllowNull,
   AfterUpdate,
   BeforeUpdate,
+  Sequelize,
 } from "sequelize-typescript";
 import { UserPreferenceDefaults } from "@shared/constants";
 import { languages } from "@shared/i18n";
@@ -135,6 +136,77 @@ class User extends ParanoidModel<
   InferAttributes<User>,
   Partial<InferCreationAttributes<User>>
 > {
+  public static flagForContext(ctx: unknown): UserFlag | undefined {
+    const userAgent =
+      typeof ctx === "object" && ctx
+        ? (ctx as { userAgent?: Context["userAgent"] }).userAgent
+        : undefined;
+
+    if (userAgent?.source.includes("Outline/")) {
+      return UserFlag.Desktop;
+    }
+
+    if (userAgent?.isDesktop) {
+      return UserFlag.DesktopWeb;
+    }
+
+    if (userAgent?.isMobile) {
+      return UserFlag.MobileWeb;
+    }
+
+    return undefined;
+  }
+
+  public static async touchActiveAt(
+    userId: string,
+    options: {
+      ip?: string | null;
+      force?: boolean;
+      lastActiveAt?: Date | null;
+      flags?: User["flags"] | null;
+      flag?: UserFlag;
+    } = {}
+  ) {
+    const { ip, force = false, lastActiveAt, flags, flag } = options;
+    const now = new Date();
+    const fiveMinutesAgo = subMinutes(now, 5);
+    const shouldTouchTimestamp =
+      force || !lastActiveAt || lastActiveAt < fiveMinutesAgo;
+    const shouldPersistFlag = !!flag && (flags?.[flag] ?? 0) !== 1;
+
+    if (!shouldTouchTimestamp && !shouldPersistFlag) {
+      return false;
+    }
+
+    const values: Partial<User> & {
+      flags?: ReturnType<typeof Sequelize.literal>;
+    } = {};
+
+    if (shouldTouchTimestamp) {
+      values.lastActiveAt = now;
+      values.lastActiveIp = ip ?? null;
+    }
+
+    if (shouldPersistFlag && flag) {
+      const flagValue = JSON.stringify({
+        [flag]: 1,
+      }).replace(/'/g, "''");
+
+      values.flags = Sequelize.literal(
+        `COALESCE("flags", '{}'::jsonb) || '${flagValue}'::jsonb`
+      );
+    }
+
+    const [updated] = await this.update(values, {
+      where: {
+        id: userId,
+      },
+      hooks: false,
+    });
+
+    return updated > 0;
+  }
+
   @IsEmail
   @Length({
     min: 1,
@@ -553,28 +625,31 @@ class User extends ParanoidModel<
 
   updateActiveAt = async (ctx: Context, force = false) => {
     const { ip } = ctx.request;
-    const fiveMinutesAgo = subMinutes(new Date(), 5);
+    const flag = User.flagForContext(ctx);
+    const now = new Date();
+    const fiveMinutesAgo = subMinutes(now, 5);
+    const shouldTouchTimestamp =
+      force || !this.lastActiveAt || this.lastActiveAt < fiveMinutesAgo;
+    const shouldPersistFlag = !!flag && this.getFlag(flag) !== 1;
 
-    // ensure this is updated only every few minutes otherwise
-    // we'll be constantly writing to the DB as API requests happen
-    if (!this.lastActiveAt || this.lastActiveAt < fiveMinutesAgo || force) {
-      this.lastActiveAt = new Date();
+    await User.touchActiveAt(this.id, {
+      ip,
+      force,
+      lastActiveAt: this.lastActiveAt,
+      flags: this.flags,
+      flag,
+    });
+
+    if (shouldTouchTimestamp) {
+      this.lastActiveAt = now;
       this.lastActiveIp = ip;
     }
 
-    // Track the clients each user is using
-    if (ctx.userAgent?.source.includes("Outline/")) {
-      this.setFlag(UserFlag.Desktop);
-    } else if (ctx.userAgent?.isDesktop) {
-      this.setFlag(UserFlag.DesktopWeb);
-    } else if (ctx.userAgent?.isMobile) {
-      this.setFlag(UserFlag.MobileWeb);
+    if (shouldPersistFlag && flag) {
+      this.setFlag(flag);
     }
 
-    // Save only writes to the database if there are changes
-    return this.save({
-      hooks: false,
-    });
+    return this;
   };
 
   updateSignedIn = (ctx: Context | APIContext) => {

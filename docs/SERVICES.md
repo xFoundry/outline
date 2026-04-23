@@ -43,3 +43,29 @@ If the collaboration service is hosted on a separate domain then the `COLLABORAT
 env must be set to the publicly accessible URL. For example, if the app is hosted at
 `https://docs.example.com` you may use something like:
 `COLLABORATION_URL=wss://docs-collaboration.example.com`.
+
+## Recommended Railway Topology
+
+When running Outline on Railway, keep `WEB_CONCURRENCY=1` and assign database
+pool budgets per service so collaborative editing, worker jobs, and HTTP traffic
+do not contend for the same small pool:
+
+- `outline-web`
+  - `SERVICES=web,websockets`
+  - `WEB_CONCURRENCY=1`
+  - `DATABASE_CONNECTION_POOL_MIN=0`
+  - `DATABASE_CONNECTION_POOL_MAX=5`
+  - `COLLABORATION_URL=<public collaboration URL>`
+- `outline-worker`
+  - `SERVICES=worker`
+  - `WEB_CONCURRENCY=1`
+  - `DATABASE_CONNECTION_POOL_MIN=0`
+  - `DATABASE_CONNECTION_POOL_MAX=2`
+- `outline-collaboration`
+  - `SERVICES=collaboration`
+  - `WEB_CONCURRENCY=1`
+  - `DATABASE_CONNECTION_POOL_MIN=0`
+  - `DATABASE_CONNECTION_POOL_MAX=2`
+
+Leave `REDIS_COLLABORATION_URL` unset while collaboration runs as a singleton.
+Only configure it when you scale the collaboration service beyond one instance.

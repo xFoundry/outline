@@ -7,6 +7,7 @@ import type { MigrationError } from "umzug";
 import { Umzug, SequelizeStorage } from "umzug";
 import env from "@server/env";
 import { ClientClosedRequestError } from "@server/errors";
+import Metrics from "@server/logging/Metrics";
 import type Model from "@server/models/base/Model";
 import Logger from "../logging/Logger";
 import * as models from "../models";
@@ -108,6 +109,40 @@ export function createDatabaseInstance(
     if (env.isTest) {
       instance = monkeyPatchSequelizeErrorsForJest(instance);
     }
+
+    const poolAcquireStartedAt = new WeakMap<object, number>();
+    const poolRoleTag = isReadOnly ? "read_only" : "primary";
+
+    instance.addHook("beforePoolAcquire", (options) => {
+      if (options && typeof options === "object") {
+        poolAcquireStartedAt.set(options, Date.now());
+      }
+    });
+
+    instance.addHook("afterPoolAcquire", (_connection, options) => {
+      if (!(options && typeof options === "object")) {
+        return;
+      }
+
+      const startedAt = poolAcquireStartedAt.get(options);
+      poolAcquireStartedAt.delete(options);
+
+      if (!startedAt) {
+        return;
+      }
+
+      const waitDuration = Date.now() - startedAt;
+      Metrics.gauge("database.pool.acquire_wait_ms", waitDuration, [
+        `role:${poolRoleTag}`,
+      ]);
+
+      if (waitDuration > 250) {
+        Logger.warn("Database pool acquire wait exceeded threshold", {
+          waitDurationMs: waitDuration,
+          role: poolRoleTag,
+        });
+      }
+    });
 
     // Skip queries when the originating HTTP request socket has been destroyed
     // (e.g. client disconnected or server timeout). This avoids wasting database

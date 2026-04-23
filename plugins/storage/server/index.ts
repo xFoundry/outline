@@ -25,15 +25,14 @@ if (env.FILE_STORAGE === "local") {
 
 const enabled = !!(
   env.FILE_STORAGE_UPLOAD_MAX_SIZE &&
-  env.FILE_STORAGE_LOCAL_ROOT_DIR &&
-  env.FILE_STORAGE === "local"
+  (env.FILE_STORAGE === "local" ? env.FILE_STORAGE_LOCAL_ROOT_DIR : true)
 );
 
 if (enabled) {
   PluginManager.add([
     {
-      name: "Local file storage",
-      description: "Plugin for storing files on the local file system",
+      name: "File storage",
+      description: "Plugin for serving and storing files through Outline",
       type: Hook.API,
       value: router,
       priority: PluginPriority.Normal,

@@ -46,7 +46,7 @@ export default function createMiddleware(providerName: string) {
                 ? ctx.hostname
                 : (state?.host ?? ctx.hostname);
             const url = new URL(
-              env.isCloudHosted
+              env.hasWorkspaceSubdomains
                 ? `${reqProtocol}://${requestHost}${redirectPath}`
                 : `${env.URL}${redirectPath}`
             );

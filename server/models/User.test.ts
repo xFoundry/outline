@@ -13,6 +13,7 @@ import {
 } from "@server/test/factories";
 import User from "./User";
 import UserMembership from "./UserMembership";
+import { UserFlag } from "./User";
 
 beforeAll(() => {
   jest.useFakeTimers().setSystemTime(new Date("2018-01-02T00:00:00.000Z"));
@@ -20,6 +21,10 @@ beforeAll(() => {
 
 afterAll(() => {
   jest.useRealTimers();
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
 });
 
 describe("user model", () => {
@@ -234,6 +239,58 @@ describe("user model", () => {
       const response = await user.collectionIds();
       expect(response.length).toEqual(1);
       expect(response[0]).toEqual(collection.id);
+    });
+  });
+
+  describe("touchActiveAt", () => {
+    it("should update lastActiveAt once and skip writes inside the 5 minute window", async () => {
+      const user = await buildUser({
+        lastActiveAt: null,
+        lastActiveIp: null,
+      });
+
+      await User.touchActiveAt(user.id, {
+        ip: "127.0.0.1",
+        lastActiveAt: user.lastActiveAt,
+        flags: user.flags,
+      });
+      await user.reload();
+
+      const firstActiveAt = user.lastActiveAt;
+      const firstActiveIp = user.lastActiveIp;
+
+      const updateSpy = jest.spyOn(User, "update");
+      await User.touchActiveAt(user.id, {
+        ip: "127.0.0.2",
+        lastActiveAt: user.lastActiveAt,
+        flags: user.flags,
+      });
+      await user.reload();
+
+      expect(updateSpy).not.toHaveBeenCalled();
+      expect(user.lastActiveAt).toEqual(firstActiveAt);
+      expect(user.lastActiveIp).toEqual(firstActiveIp);
+    });
+
+    it("should persist a new client flag without rewriting lastActiveAt", async () => {
+      const user = await buildUser({
+        lastActiveAt: new Date(),
+        lastActiveIp: "127.0.0.1",
+        flags: null,
+      });
+
+      const updateSpy = jest.spyOn(User, "update");
+      await User.touchActiveAt(user.id, {
+        ip: "127.0.0.2",
+        lastActiveAt: user.lastActiveAt,
+        flags: user.flags,
+        flag: UserFlag.DesktopWeb,
+      });
+      await user.reload();
+
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+      expect(user.lastActiveIp).toEqual("127.0.0.1");
+      expect(user.getFlag(UserFlag.DesktopWeb)).toBe(1);
     });
   });
 

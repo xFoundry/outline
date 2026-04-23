@@ -236,7 +236,6 @@ router.post(
   "shares.create",
   auth(),
   validate(T.SharesCreateSchema),
-  transaction(),
   async (ctx: APIContext<T.SharesCreateReq>) => {
     const {
       collectionId,

@@ -30,7 +30,7 @@ router.post(
     const domain = parseDomain(ctx.request.hostname);
 
     let team: Team | null | undefined;
-    if (!env.isCloudHosted) {
+    if (!env.hasWorkspaceSubdomains) {
       team = await Team.scope("withAuthenticationProviders").findOne();
     } else if (domain.custom) {
       team = await Team.scope("withAuthenticationProviders").findOne({

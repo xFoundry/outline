@@ -16,7 +16,7 @@ const teamUpdater = async (ctx: APIContext, { params, user, team }: Props) => {
   const { allowedDomains, preferences, subdomain, ...attributes } = params;
   team.setAttributes(attributes);
 
-  if (subdomain !== undefined && env.isCloudHosted) {
+  if (subdomain !== undefined && env.hasWorkspaceSubdomains) {
     team.subdomain = subdomain === "" ? null : subdomain;
   }
 

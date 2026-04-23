@@ -18,7 +18,6 @@ import { Attachment } from "@server/models";
 import AttachmentHelper from "@server/models/helpers/AttachmentHelper";
 import { authorize } from "@server/policies";
 import FileStorage from "@server/storage/files";
-import type LocalStorage from "@server/storage/files/LocalStorage";
 import type { APIContext } from "@server/types";
 import { RateLimiterStrategy } from "@server/utils/RateLimiter";
 import { getJWTPayload } from "@server/utils/jwt";
@@ -129,7 +128,7 @@ router.get(
 
     // Handle byte range requests
     // https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests
-    const stats = await (FileStorage as LocalStorage).stat(key);
+    const stats = await FileStorage.stat(key);
     const range = getByteRange(ctx, stats.size);
 
     if (range) {

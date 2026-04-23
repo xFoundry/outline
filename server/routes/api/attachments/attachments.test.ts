@@ -526,7 +526,7 @@ describe("#attachments.redirect", () => {
       redirect: "manual",
     });
     expect(res.status).toEqual(302);
-    expect(res.headers.get("location")).toContain(attachment.canonicalUrl);
+    expect(res.headers.get("location")).toContain(await attachment.signedUrl);
   });
 
   it("should return a redirect for a public-read attachment without authentication (not in public bucket)", async () => {
