@@ -13,10 +13,12 @@ type Props = ComponentProps & {
 
 export default function Video(props: Props) {
   const { isSelected, node, isEditable, children, onChangeSize } = props;
+  const { layoutClass } = node.attrs;
   const [naturalWidth] = React.useState(node.attrs.width);
   const [naturalHeight] = React.useState(node.attrs.height);
   const ref = React.useRef<HTMLDivElement>(null);
   const isResizable = !!onChangeSize;
+  const isFullWidth = layoutClass === "full-width";
 
   const {
     width,
@@ -42,16 +44,17 @@ export default function Video(props: Props) {
         height: node.attrs.height,
       });
     }
-  }, [node.attrs.width]);
+  }, [node.attrs.height, node.attrs.width, setSize, width]);
 
+  const className = layoutClass ? `video video-${layoutClass}` : "video";
   const style: React.CSSProperties = {
-    width: width || "auto",
+    width: isFullWidth ? "var(--container-width)" : width || "auto",
     maxHeight: height || "auto",
     pointerEvents: dragging ? "none" : "all",
   };
 
   return (
-    <div contentEditable={false} ref={ref}>
+    <div className={className} contentEditable={false} ref={ref}>
       <VideoWrapper
         className={isSelected ? "ProseMirror-selectednode" : ""}
         style={style}
