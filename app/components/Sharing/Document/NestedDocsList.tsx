@@ -18,6 +18,13 @@ type Props = {
   maxVisible?: number;
 };
 
+function countDescendants(nodes: NavigationNode[]): number {
+  return nodes.reduce(
+    (sum, node) => sum + 1 + countDescendants(node.children ?? []),
+    0
+  );
+}
+
 function NestedDocsList({ documentId, collectionId, maxVisible = 5 }: Props) {
   const { t } = useTranslation();
   const { collections } = useStores();
@@ -36,16 +43,6 @@ function NestedDocsList({ documentId, collectionId, maxVisible = 5 }: Props) {
   if (collection && !collection.documents) {
     return null;
   }
-
-  // Count total descendants recursively
-  const countDescendants = React.useCallback(
-    (nodes: NavigationNode[]): number =>
-      nodes.reduce(
-        (sum, node) => sum + 1 + countDescendants(node.children ?? []),
-        0
-      ),
-    []
-  );
 
   const totalCount = countDescendants(children);
 

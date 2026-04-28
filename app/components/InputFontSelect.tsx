@@ -1,7 +1,9 @@
 import * as React from "react";
 import { useTranslation } from "react-i18next";
-import { GOOGLE_FONTS, FontType } from "@shared/utils/googleFonts";
-import { InputSelect, Option } from "~/components/InputSelect";
+import type { FontType } from "@shared/utils/googleFonts";
+import { GOOGLE_FONTS } from "@shared/utils/googleFonts";
+import type { Option } from "~/components/InputSelect";
+import { InputSelect } from "~/components/InputSelect";
 
 type Props = {
   /** The type of font (heading or body) */

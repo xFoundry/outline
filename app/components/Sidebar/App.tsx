@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { useTranslation } from "react-i18next";
+import { useHistory } from "react-router-dom";
 import styled from "styled-components";
 import { metaDisplay } from "@shared/utils/keyboard";
 import Scrollable from "~/components/Scrollable";
@@ -37,6 +38,15 @@ function AppSidebar() {
   const team = useCurrentTeam();
   const user = useCurrentUser();
   const can = usePolicy(team);
+  const history = useHistory();
+
+  const handleSearchClick = useCallback(() => {
+    const basePath = searchPath();
+    const { pathname, search } = history.location;
+    if (pathname.startsWith(basePath) && (search || pathname !== basePath)) {
+      history.push(basePath);
+    }
+  }, [history]);
 
   useEffect(() => {
     void collections.fetchAll();
@@ -57,7 +67,6 @@ function AppSidebar() {
 
   return (
     <Sidebar hidden={!ui.readyToShow} ref={handleSidebarRef}>
-      <HistoryNavigation />
       {dndArea && (
         <DndProvider backend={HTML5Backend} options={html5Options}>
           <DragPlaceholder />
@@ -70,7 +79,7 @@ function AppSidebar() {
                   model={team}
                   size={24}
                   alt={t("Logo")}
-                  style={{ marginLeft: 4 }}
+                  style={{ insetInlineStart: 4 }}
                 />
               }
             >
@@ -107,6 +116,7 @@ function AppSidebar() {
                 icon={<SearchIcon />}
                 label={t("Search")}
                 exact={false}
+                onClick={handleSearchClick}
               />
               {can.createDocument && <DraftsLink />}
             </Section>
@@ -133,6 +143,7 @@ function AppSidebar() {
           </Scrollable>
         </DndProvider>
       )}
+      <HistoryNavigation />
     </Sidebar>
   );
 }

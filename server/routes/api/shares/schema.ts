@@ -53,6 +53,7 @@ export const SharesUpdateSchema = BaseSchema.extend({
     includeChildDocuments: z.boolean().optional(),
     published: z.boolean().optional(),
     allowIndexing: z.boolean().optional(),
+    allowSubscriptions: z.boolean().optional(),
     showLastUpdated: z.boolean().optional(),
     showTOC: z.boolean().optional(),
     urlId: z
@@ -73,6 +74,7 @@ export const SharesCreateSchema = BaseSchema.extend({
       documentId: zodIdType().optional(),
       published: z.boolean().prefault(false),
       allowIndexing: z.boolean().optional(),
+      allowSubscriptions: z.boolean().optional(),
       showLastUpdated: z.boolean().optional(),
       showTOC: z.boolean().optional(),
       urlId: z
@@ -85,7 +87,13 @@ export const SharesCreateSchema = BaseSchema.extend({
     })
     .refine((obj) => !(isEmpty(obj.collectionId) && isEmpty(obj.documentId)), {
       error: "one of collectionId or documentId is required",
-    }),
+    })
+    .refine(
+      (obj) => !(!isEmpty(obj.collectionId) && !isEmpty(obj.documentId)),
+      {
+        error: "only one of collectionId or documentId may be provided",
+      }
+    ),
 });
 
 export type SharesCreateReq = z.infer<typeof SharesCreateSchema>;
@@ -105,3 +113,35 @@ export const SharesSitemapSchema = BaseSchema.extend({
 });
 
 export type SharesSitemapReq = z.infer<typeof SharesSitemapSchema>;
+
+export const SharesSubscribeSchema = BaseSchema.extend({
+  body: z.object({
+    shareId: z.string(),
+    documentId: z.uuid(),
+    email: z.string().email(),
+  }),
+});
+
+export type SharesSubscribeReq = z.infer<typeof SharesSubscribeSchema>;
+
+export const SharesConfirmSubscriptionSchema = BaseSchema.extend({
+  query: z.object({
+    id: z.uuid(),
+    token: z.string(),
+    follow: z.string().optional(),
+  }),
+});
+
+export type SharesConfirmSubscriptionReq = z.infer<
+  typeof SharesConfirmSubscriptionSchema
+>;
+
+export const SharesUnsubscribeSchema = BaseSchema.extend({
+  query: z.object({
+    id: z.uuid(),
+    token: z.string(),
+    follow: z.string().optional(),
+  }),
+});
+
+export type SharesUnsubscribeReq = z.infer<typeof SharesUnsubscribeSchema>;

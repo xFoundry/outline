@@ -142,19 +142,29 @@ export default class Heading extends Node {
   };
 
   handleCopyLink = (event: MouseEvent) => {
-    // this is unfortunate but appears to be the best way to grab the anchor
-    // as it's added directly to the dom by a decoration.
-    const anchor =
-      event.currentTarget instanceof HTMLButtonElement &&
-      (event.currentTarget.parentNode?.parentNode
-        ?.previousSibling as HTMLElement);
-
-    if (
-      !anchor ||
-      !anchor.className.includes(EditorStyleHelper.headingPositionAnchor)
-    ) {
-      throw new Error("Did not find anchor as previous sibling of heading");
+    if (!(event.currentTarget instanceof HTMLButtonElement)) {
+      return;
     }
+
+    const heading = event.currentTarget.closest(".heading-content");
+    if (!heading) {
+      return;
+    }
+
+    // Search previous siblings for the anchor element, as other elements
+    // (e.g. multiplayer cursors) may be inserted between the anchor and heading.
+    let anchor = heading.previousElementSibling;
+    while (
+      anchor &&
+      !anchor.className?.includes(EditorStyleHelper.headingPositionAnchor)
+    ) {
+      anchor = anchor.previousElementSibling;
+    }
+
+    if (!anchor) {
+      return;
+    }
+
     const hash = `#${anchor.id}`;
 
     // the existing url might contain a hash already, lets make sure to remove
@@ -200,6 +210,7 @@ export default class Heading extends Node {
           anchor.innerText = "#";
           anchor.type = "button";
           anchor.className = "heading-anchor";
+          anchor.setAttribute("aria-label", "Copy link to heading");
           anchor.addEventListener("mousedown", (event) =>
             this.handleCopyLink(event)
           );
@@ -213,7 +224,15 @@ export default class Heading extends Node {
           fold.className = `heading-fold ${
             node.attrs.collapsed ? "collapsed" : ""
           }`;
-          fold.addEventListener("mousedown", (event) =>
+          fold.setAttribute(
+            "aria-label",
+            node.attrs.collapsed ? "Expand section" : "Collapse section"
+          );
+          fold.setAttribute(
+            "aria-expanded",
+            (!node.attrs.collapsed).toString()
+          );
+          fold.addEventListener("click", (event) =>
             this.handleFoldContent(event)
           );
 

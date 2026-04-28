@@ -1,8 +1,11 @@
+import { DirectionProvider } from "@radix-ui/react-direction";
 import { observer } from "mobx-react";
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import { ThemeProvider } from "styled-components";
 import GlobalStyles from "@shared/styles/globals";
 import { TeamPreference, UserPreference } from "@shared/types";
+import { isRTLLanguage } from "@shared/utils/rtl";
 import GoogleFontLoader from "~/components/GoogleFontLoader";
 import useBuildTheme from "~/hooks/useBuildTheme";
 import useStores from "~/hooks/useStores";
@@ -13,11 +16,13 @@ type Props = {
 
 const Theme: React.FC = ({ children }: Props) => {
   const { auth, ui } = useStores();
+  const { i18n } = useTranslation();
   const customTheme =
     auth.team?.getPreference(TeamPreference.CustomTheme) ||
     auth.config?.customTheme ||
     undefined;
   const theme = useBuildTheme(customTheme);
+  const direction = isRTLLanguage(i18n.language) ? "rtl" : "ltr";
 
   React.useEffect(() => {
     window.dispatchEvent(
@@ -28,21 +33,23 @@ const Theme: React.FC = ({ children }: Props) => {
   }, [ui.resolvedTheme]);
 
   return (
-    <ThemeProvider theme={theme}>
-      <>
-        <GoogleFontLoader
-          headingFont={customTheme?.fontFamilyHeading}
-          bodyFont={customTheme?.fontFamilyBody}
-        />
-        <GlobalStyles
-          useCursorPointer={
-            // Default to showing the cursor pointer if no user is logged in (public share)
-            auth.user?.getPreference(UserPreference.UseCursorPointer) ?? true
-          }
-        />
-        {children}
-      </>
-    </ThemeProvider>
+    <DirectionProvider dir={direction}>
+      <ThemeProvider theme={theme}>
+        <>
+          <GoogleFontLoader
+            headingFont={customTheme?.fontFamilyHeading}
+            bodyFont={customTheme?.fontFamilyBody}
+          />
+          <GlobalStyles
+            useCursorPointer={
+              // Default to showing the cursor pointer if no user is logged in (public share)
+              auth.user?.getPreference(UserPreference.UseCursorPointer) ?? true
+            }
+          />
+          {children}
+        </>
+      </ThemeProvider>
+    </DirectionProvider>
   );
 };
 
