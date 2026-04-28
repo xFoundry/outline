@@ -34,11 +34,15 @@ import DocumentMenu from "~/menus/DocumentMenu";
 import NewChildDocumentMenu from "~/menus/NewChildDocumentMenu";
 import TableOfContentsMenu from "~/menus/TableOfContentsMenu";
 import TemplatesMenu from "~/menus/TemplatesMenu";
+import env from "~/env";
 import { documentEditPath } from "~/utils/routeHelpers";
 import ObservingBanner from "./ObservingBanner";
 import PublicBreadcrumb from "./PublicBreadcrumb";
 import ShareButton from "./ShareButton";
-import { AppearanceAction } from "~/components/Sharing/components/Actions";
+import {
+  AppearanceAction,
+  SubscribeAction,
+} from "~/components/Sharing/components/Actions";
 import useShare from "@shared/hooks/useShare";
 import { type Editor } from "~/editor";
 import { ChangesNavigation } from "./ChangesNavigation";
@@ -92,8 +96,8 @@ function DocumentHeader({
   const { hasHeadings, editor } = useDocumentContext();
   const sidebarContext = useLocationSidebarContext();
   const [measureRef, size] = useMeasure();
-  const { isShare, shareId, sharedTree } = useShare();
-  const isMobile = isMobileMedia || size.width < 700;
+  const { isShare, shareId, sharedTree, allowSubscriptions } = useShare();
+  const isMobile = isMobileMedia || (size.width > 0 && size.width < 700);
 
   // We cache this value for as long as the component is mounted so that if you
   // apply a template there is still the option to replace it until the user
@@ -120,6 +124,12 @@ function DocumentHeader({
   const canToggleEmbeds = team?.documentEmbeds;
   const showContents =
     ui.tocVisible === true || (isShare && ui.tocVisible !== false);
+
+  useEffect(() => {
+    if (isMobile && showContents) {
+      ui.set({ tocVisible: false });
+    }
+  }, [isMobile, showContents, ui]);
 
   const toc = (
     <Tooltip
@@ -210,6 +220,9 @@ function DocumentHeader({
         }
         actions={
           <>
+            {allowSubscriptions !== false && !user && env.EMAIL_ENABLED && (
+              <SubscribeAction shareId={shareId} documentId={document.id} />
+            )}
             <AppearanceAction />
             {can.update && !isEditing ? editAction : <div />}
           </>
@@ -248,6 +261,7 @@ function DocumentHeader({
             )}
             {document.title}
             {document.isArchived && <Badge>{t("Archived")}</Badge>}
+            {document.isDraft && <Badge>{t("Draft")}</Badge>}
           </Flex>
         }
         actions={({ isCompact }) => (

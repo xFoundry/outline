@@ -405,6 +405,16 @@ const diffStyle = (props: Props) => css`
 `;
 
 const findAndReplaceStyle = () => css`
+  ::highlight(search-results) {
+    background-color: rgba(255, 213, 0, 0.25);
+    color: inherit;
+  }
+
+  ::highlight(search-results-current) {
+    background-color: rgba(255, 213, 0, 0.75);
+    color: inherit;
+  }
+
   .find-result:not(:has(.mention)),
   .find-result .mention {
     background: rgba(255, 213, 0, 0.25);
@@ -412,9 +422,8 @@ const findAndReplaceStyle = () => css`
 
   .find-result.current-result:not(:has(.mention)),
   .find-result.current-result .mention {
-      background: rgba(255, 213, 0, 0.75);
-      animation: ${pulse("rgba(255, 213, 0, 0.75)")} 150ms 1;
-    }
+    background: rgba(255, 213, 0, 0.75);
+    animation: ${pulse("rgba(255, 213, 0, 0.75)")} 150ms 1;
   }
 `;
 
@@ -1076,6 +1085,10 @@ img.ProseMirror-separator {
   display: block;
 }
 
+.image-commented .image-wrapper {
+  outline: ${props.theme.commentedImageOutlineLight} solid 2px;
+}
+
 // Removes forced paragraph spaces below images, this is needed to images
 // being inline nodes that are displayed like blocks
 .component-image + img.ProseMirror-separator,
@@ -1650,6 +1663,11 @@ ol li {
   opacity: 1;
 }
 
+td .${EditorStyleHelper.checklistCompletedToggle},
+th .${EditorStyleHelper.checklistCompletedToggle} {
+  top: -32px;
+}
+
 .${EditorStyleHelper.checklistWrapper}.${EditorStyleHelper.checklistCompletedHidden} ul.checkbox_list > li.checked {
   display: none;
 }
@@ -1834,6 +1852,25 @@ code {
   }
 }
 
+.${EditorStyleHelper.hexColorSwatch} {
+  display: inline-block;
+  width: 0.75em;
+  height: 0.75em;
+  margin-left: 0.3em;
+  vertical-align: -0.05em;
+  border-radius: 50%;
+  background-clip: padding-box;
+  cursor: var(--pointer);
+}
+
+.${
+  props.theme.isDark
+    ? EditorStyleHelper.hexColorSwatchDark
+    : EditorStyleHelper.hexColorSwatchLight
+} {
+  outline: 1px solid ${props.theme.codeBorder};
+}
+
 mark {
   border-radius: 1px;
   padding: 2px 0;
@@ -1853,20 +1890,27 @@ mark {
   height: 16px;
 }
 
-.code-block {
+.${EditorStyleHelper.codeBlock} {
   position: relative;
   font-size: 90%;
+
+  &:hover + .${EditorStyleHelper.codeBlockToggle},
+  &:focus-within + .${EditorStyleHelper.codeBlockToggle},
+  & + .${EditorStyleHelper.codeBlockToggle}:hover,
+  & + .${EditorStyleHelper.codeBlockToggle}:focus {
+    opacity: 1;
+  }
 }
 
-.code-block[data-language=none],
-.code-block[data-language=markdown] {
+.${EditorStyleHelper.codeBlock}[data-language=none],
+.${EditorStyleHelper.codeBlock}[data-language=markdown] {
   pre code {
     color: ${props.theme.text};
   }
 }
 
-.code-block[data-language=mermaid],
-.code-block[data-language=mermaidjs] {
+.${EditorStyleHelper.codeBlock}[data-language=mermaid],
+.${EditorStyleHelper.codeBlock}[data-language=mermaidjs] {
   ${
     !props.staticHTML &&
     css`
@@ -1903,8 +1947,8 @@ mark {
   }
 }
 
-.ProseMirror[contenteditable="false"] .code-block[data-language=mermaid],
-.ProseMirror[contenteditable="false"] .code-block[data-language=mermaidjs] {
+.ProseMirror[contenteditable="false"] .${EditorStyleHelper.codeBlock}[data-language=mermaid],
+.ProseMirror[contenteditable="false"] .${EditorStyleHelper.codeBlock}[data-language=mermaidjs] {
     height: 0;
     overflow: hidden;
 
@@ -1914,8 +1958,8 @@ mark {
 }
 
 .ProseMirror.exported {
-    .code-block[data-language=mermaid],
-    .code-block[data-language=mermaidjs] {
+    .${EditorStyleHelper.codeBlock}[data-language=mermaid],
+    .${EditorStyleHelper.codeBlock}[data-language=mermaidjs] {
         height: auto;
         overflow: visible;
 
@@ -1929,14 +1973,14 @@ mark {
     }
 }
 
-.code-block.with-line-wrap {
+.${EditorStyleHelper.codeBlock}.with-line-wrap {
   pre {
     white-space: pre-wrap;
     word-break: break-all;
   }
 }
 
-.code-block.with-line-numbers {
+.${EditorStyleHelper.codeBlock}.with-line-numbers {
   pre {
     padding-left: calc(var(--line-number-gutter-width, 0) * 1em + 1.5em);
   }
@@ -1957,6 +2001,69 @@ mark {
     text-align: right;
     font-variant-numeric: tabular-nums;
     user-select: none;
+  }
+}
+
+.${EditorStyleHelper.codeBlock}.collapsed {
+  pre {
+    pointer-events: none;
+    max-height: calc(10 * 1.4em + 0.75em);
+    overflow: hidden;
+  }
+
+  &::after {
+    clip-path: inset(0 0 calc(100% - 10 * 1.4em - 0.75em) 0);
+  }
+
+  &::before {
+    content: "";
+    position: absolute;
+    bottom: 1px;
+    left: 1px;
+    right: 1px;
+    height: 120px;
+    z-index: 1;
+    pointer-events: none;
+    border-radius: 0 0 4px 4px;
+    background: linear-gradient(
+      to bottom,
+      ${transparentize(1, props.theme.codeBackground)} 0%,
+      ${transparentize(0.2, props.theme.codeBackground)} 70%,
+      ${props.theme.codeBackground} 100%
+    );
+  }
+}
+
+.${EditorStyleHelper.codeBlockToggle} {
+  display: inline-flex;
+  align-items: center;
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  transform: translate3d(-50%, -50px, 0);
+  margin: 0;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 100px;
+  background: ${props.theme.background};
+  color: ${props.theme.buttonNeutralText};
+  box-shadow: rgba(0, 0, 0, 0.07) 0px 1px 2px, ${props.theme.buttonNeutralBorder} 0 0 0 1px inset;
+  font-size: 13px;
+  font-weight: 500;
+  height: 24px;
+  cursor: var(--pointer);
+  user-select: none;
+  appearance: none !important;
+  opacity: 0;
+  transition: opacity 150ms ease;
+  pointer-events: auto;
+
+  &:hover {
+    background: ${props.theme.backgroundSecondary};
+  }
+
+  @media print {
+    display: none !important;
   }
 }
 
@@ -2066,11 +2173,6 @@ table {
     );
     color: ${props.theme.textSecondary};
     font-weight: 500;
-  }
-
-  tr:first-child {
-    position: relative;
-    z-index: 2;
   }
 
   tr:first-child th,
@@ -2429,7 +2531,12 @@ table {
 }
 
 .${EditorStyleHelper.tableStickyHeader} {
-  tr:first-child th {
+  > .${EditorStyleHelper.tableScrollable} > table > tbody > tr:first-child {
+    position: relative;
+    z-index: 2;
+  }
+
+  > .${EditorStyleHelper.tableScrollable} > table > tbody > tr:first-child > th {
     transform: translateY(calc(var(--header-offset, 64px) + var(--sticky-scroll-offset, 0px)));
     border-bottom: 1px solid ${props.theme.divider};
 
@@ -2445,7 +2552,7 @@ table {
     }
   }
 
-  .${EditorStyleHelper.tableGrip} {
+  > .${EditorStyleHelper.tableGrip} {
     display: none;
   }
 }
@@ -2631,27 +2738,34 @@ del {
   }
 }
 
-.toggle-block {
+li > .${EditorStyleHelper.toggleBlock} {
+  position: relative;
+  /* Nudge the toggle to visually align with the first line of list-item text.
+     Keep this in em so it scales with the current font size. */
+  top: 0.4em;
+}
+
+.${EditorStyleHelper.toggleBlock} {
   display: flex;
 
   &:focus-within {
     transition-delay: 0.1s;
   }
 
-  &.folded {
+  &.${EditorStyleHelper.toggleBlockFolded} {
     &:dir(rtl) {
       --rotate-by: 90deg;
     }
     &:dir(ltr) {
       --rotate-by: -90deg;
     }
-    > .toggle-block-content > :is(:not(.toggle-block-head)) {
+    > .${EditorStyleHelper.toggleBlockContent} > :is(:not(.${EditorStyleHelper.toggleBlockHead})) {
       display: none;
     }
-    > .toggle-block-content > :is(a.heading-name) {
+    > .${EditorStyleHelper.toggleBlockContent} > :is(a.heading-name) {
       display: unset;
     }
-    > .toggle-block-button {
+    > .${EditorStyleHelper.toggleBlockButton} {
       svg {
         transform: rotate(var(--rotate-by));
         pointer-events: none;
@@ -2660,7 +2774,7 @@ del {
     }
   }
 
-  > .toggle-block-button {
+  > .${EditorStyleHelper.toggleBlockButton} {
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
@@ -2670,22 +2784,22 @@ del {
     --line-height: var(--line-height-p);
     --font-size: var(--font-size-p);
 
-    &:has(+ .toggle-block-content > .toggle-block-head > h1) {
+    &:has(+ .${EditorStyleHelper.toggleBlockContent} > .${EditorStyleHelper.toggleBlockHead} > h1) {
       --line-height: calc(var(--line-height-h) + 0.2);
       --font-size: var(--font-size-h1);
     }
 
-    &:has(+ .toggle-block-content > .toggle-block-head > h2) {
+    &:has(+ .${EditorStyleHelper.toggleBlockContent} > .${EditorStyleHelper.toggleBlockHead} > h2) {
       --line-height: calc(var(--line-height-h) + 0.2);
       --font-size: var(--font-size-h2);
     }
 
-    &:has(+ .toggle-block-content > .toggle-block-head > h3) {
+    &:has(+ .${EditorStyleHelper.toggleBlockContent} > .${EditorStyleHelper.toggleBlockHead} > h3) {
       --line-height: calc(var(--line-height-h) + 0.2);
       --font-size: var(--font-size-h3);
     }
 
-    &:has(+ .toggle-block-content > .toggle-block-head > h4) {
+    &:has(+ .${EditorStyleHelper.toggleBlockContent} > .${EditorStyleHelper.toggleBlockHead} > h4) {
       --line-height: calc(var(--line-height-h) + 0.2);
       --font-size: var(--font-size-h4);
     }
@@ -2713,14 +2827,14 @@ del {
     }
   }
 
-  > .toggle-block-content {
-    > :is(:not(.toggle-block-head)) {
+  > .${EditorStyleHelper.toggleBlockContent} {
+    > :is(:not(.${EditorStyleHelper.toggleBlockHead})) {
       margin-top: 0.5em;
     }
     > :is(:first-child) {
       margin-top: 0;
     }
-    > .toggle-block-head {
+    > .${EditorStyleHelper.toggleBlockHead} {
       > * {
         margin-top: 0;
       }

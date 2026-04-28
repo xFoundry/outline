@@ -29,7 +29,7 @@ export default class WelcomeEmail extends BaseEmail<Props, BeforeSend> {
   }
 
   protected subject() {
-    return `Welcome to ${env.APP_NAME}`;
+    return this.t("Welcome to {{ appName }}!", { appName: env.APP_NAME });
   }
 
   protected async beforeSend(props: Props) {
@@ -40,18 +40,21 @@ export default class WelcomeEmail extends BaseEmail<Props, BeforeSend> {
   }
 
   protected preview() {
-    return `${env.APP_NAME} is a place for your team to build and share knowledge.`;
+    return this.t(
+      "{{ appName }} is a place for your team to build and share knowledge.",
+      { appName: env.APP_NAME }
+    );
   }
 
   protected renderAsText({ teamUrl }: Props) {
     return `
-Welcome to ${env.APP_NAME}!
+${this.t("Welcome to {{ appName }}!", { appName: env.APP_NAME })}
 
-${env.APP_NAME} is a place for your team to build and share knowledge.
+${this.t("{{ appName }} is a place for your team to build and share knowledge.", { appName: env.APP_NAME })}
 
-To get started, head to the home screen and try creating a collection to help document your processes, create playbooks, or plan your team's work.
+${this.t("To get started, head to the home screen and try creating a collection to help document your processes, create playbooks, or plan your team's work.")}
 
-Need help? Visit our documentation at:
+${this.t("Or, learn more about everything {{ appName }} can do in the guide", { appName: env.APP_NAME })}:
 ${UrlHelper.guide}
 
 ${teamUrl}/home
@@ -66,23 +69,31 @@ ${teamUrl}/home
         <Header />
 
         <Body>
-          <Heading>Welcome to {env.APP_NAME}!</Heading>
+          <Heading>
+            {this.t("Welcome to {{ appName }}!", { appName: env.APP_NAME })}
+          </Heading>
           <p>
-            {env.APP_NAME} is a place for your team to build and share
-            knowledge.
+            {this.t(
+              "{{ appName }} is a place for your team to build and share knowledge.",
+              { appName: env.APP_NAME }
+            )}
           </p>
           <p>
-            To get started, head to the home screen and try creating a
-            collection to help document your processes, create playbooks, or
-            plan your teams work.
+            {this.t(
+              "To get started, head to the home screen and try creating a collection to help document your processes, create playbooks, or plan your team's work."
+            )}
           </p>
           <p>
-            Need help? Visit our{" "}
-            <a href={UrlHelper.guide}>documentation</a> to learn more.
+            {this.t("Or, learn more about everything {{ appName }} can do in", {
+              appName: env.APP_NAME,
+            })}{" "}
+            <a href={UrlHelper.guide}>{this.t("the guide")}</a>.
           </p>
           <EmptySpace height={10} />
           <p>
-            <Button href={welcomeLink}>Open {env.APP_NAME}</Button>
+            <Button href={welcomeLink}>
+              {this.t("Open {{ appName }}", { appName: env.APP_NAME })}
+            </Button>
           </p>
         </Body>
 

@@ -15,6 +15,7 @@ import type Share from "~/models/Share";
 import Switch from "~/components/Switch";
 import env from "~/env";
 import usePolicy from "~/hooks/usePolicy";
+import useStores from "~/hooks/useStores";
 import { AvatarSize } from "../../Avatar";
 import CopyToClipboard from "../../CopyToClipboard";
 import NudeButton from "../../NudeButton";
@@ -49,6 +50,7 @@ function PublicAccess(
   ref: React.RefObject<HTMLDivElement>
 ) {
   const { t } = useTranslation();
+  const { shares } = useStores();
   const theme = useTheme();
   const [validationError, setValidationError] = React.useState("");
   const [urlId, setUrlId] = React.useState(share?.urlId);
@@ -56,8 +58,10 @@ function PublicAccess(
   const inputRef = React.useRef<HTMLInputElement>(null);
   const can = usePolicy(share);
   const documentAbilities = usePolicy(document);
-  const canPublish = can.update && documentAbilities.share;
+  const canPublish = share ? can.update : documentAbilities.share;
+  const [creating, setCreating] = React.useState(false);
   const publishedParents = sharedParents.filter((item) => item.published);
+  const sharedParent = publishedParents[0];
   const visibleParents = parentsExpanded
     ? publishedParents
     : publishedParents.slice(0, MAX_VISIBLE_PARENTS);
@@ -75,6 +79,19 @@ function PublicAccess(
       try {
         await share?.save({
           allowIndexing: checked,
+        });
+      } catch (err) {
+        toast.error(err.message);
+      }
+    },
+    [share]
+  );
+
+  const handleSubscriptionsChanged = React.useCallback(
+    async (checked: boolean) => {
+      try {
+        await share?.save({
+          allowSubscriptions: checked,
         });
       } catch (err) {
         toast.error(err.message);
@@ -112,14 +129,23 @@ function PublicAccess(
   const handlePublishedChange = React.useCallback(
     async (checked: boolean) => {
       try {
-        await share?.save({
-          published: checked,
-        });
+        if (checked && !share) {
+          setCreating(true);
+          await shares.create({
+            type: "document",
+            documentId: document.id,
+            published: true,
+          });
+        } else if (share) {
+          await share.save({ published: checked });
+        }
       } catch (err) {
         toast.error(err.message);
+      } finally {
+        setCreating(false);
       }
     },
-    [share]
+    [share, shares, document]
   );
 
   const handleUrlChange = React.useMemo(
@@ -161,14 +187,21 @@ function PublicAccess(
     toast.success(t("Link copied to clipboard"));
   }, [t]);
 
-  const shareUrl = share?.url ?? "";
+  const shareUrl =
+    sharedParent?.url && !document.isDraft
+      ? `${sharedParent.url}${document.url}`
+      : (share?.url ?? "");
   const getParentShareUrl = (parentShare: Share) =>
     parentShare.url ? `${parentShare.url}${document.url}` : "";
 
   const copyButton = (
     <Tooltip content={t("Copy public link")} placement="top">
       <CopyToClipboard text={shareUrl} onCopy={handleCopied}>
-        <NudeButton type="button" disabled={!share} style={{ marginRight: 3 }}>
+        <NudeButton
+          type="button"
+          disabled={!shareUrl}
+          style={{ marginRight: 3 }}
+        >
           <CopyIcon color={theme.placeholder} size={18} />
         </NudeButton>
       </CopyToClipboard>
@@ -179,26 +212,55 @@ function PublicAccess(
     <div ref={ref}>
       <ListItem
         title={t("Web")}
-        subtitle={t("Allow anyone with the link to access")}
+        subtitle={
+          <>
+            {sharedParent && !document.isDraft ? (
+              sharedParent.collectionId ? (
+                <Trans>
+                  Anyone with the link can access because the containing
+                  collection,{" "}
+                  <UnderlinedLink
+                    to={`/collection/${sharedParent.collectionId}`}
+                  >
+                    {sharedParent.sourceTitle}
+                  </UnderlinedLink>
+                  , is shared
+                </Trans>
+              ) : (
+                <Trans>
+                  Anyone with the link can access because the parent document,{" "}
+                  <UnderlinedLink to={`/doc/${sharedParent.documentId}`}>
+                    {sharedParent.sourceTitle}
+                  </UnderlinedLink>
+                  , is shared
+                </Trans>
+              )
+            ) : (
+              t("Allow anyone with the link to access")
+            )}
+          </>
+        }
         image={
           <Squircle color={theme.text} size={AvatarSize.Medium}>
             <GlobeIcon color={theme.background} size={18} />
           </Squircle>
         }
         actions={
-          <Switch
-            aria-label={t("Publish to internet")}
-            checked={share?.published ?? false}
-            onChange={handlePublishedChange}
-            disabled={!canPublish}
-            width={26}
-            height={14}
-          />
+          sharedParent && !document.isDraft ? null : (
+            <Switch
+              aria-label={t("Publish to internet")}
+              checked={share?.published ?? false}
+              onChange={handlePublishedChange}
+              disabled={!canPublish || creating}
+              width={26}
+              height={14}
+            />
+          )
         }
       />
 
       <ResizingHeightContainer>
-        {share?.published && (
+        {share?.published && !sharedParent?.published && (
           <>
             <ListItem
               title={
@@ -225,6 +287,33 @@ function PublicAccess(
                 />
               }
             />
+            {env.EMAIL_ENABLED && (
+              <ListItem
+                title={
+                  <Text type="tertiary" as={Flex}>
+                    {t("Email subscriptions")}&nbsp;
+                    <Tooltip
+                      content={t(
+                        "Allow viewers to subscribe and receive email notifications when this document is updated"
+                      )}
+                    >
+                      <NudeButton size={18}>
+                        <QuestionMarkIcon size={18} />
+                      </NudeButton>
+                    </Tooltip>
+                  </Text>
+                }
+                actions={
+                  <Switch
+                    aria-label={t("Email subscriptions")}
+                    checked={share?.allowSubscriptions ?? true}
+                    onChange={handleSubscriptionsChanged}
+                    width={26}
+                    height={14}
+                  />
+                }
+              />
+            )}
             <ListItem
               title={
                 <Text type="tertiary" as={Flex}>
@@ -278,7 +367,11 @@ function PublicAccess(
           </>
         )}
 
-        {share?.published ? (
+        {sharedParent?.published && !document.isDraft ? (
+          <ShareLinkInput type="text" disabled defaultValue={shareUrl}>
+            {copyButton}
+          </ShareLinkInput>
+        ) : share?.published ? (
           <ShareLinkInput
             type="text"
             ref={inputRef}
@@ -309,11 +402,11 @@ function PublicAccess(
         ) : null}
       </ResizingHeightContainer>
 
-      {share?.published && share.includeChildDocuments && document.collectionId ? (
+      {share?.published &&
+      share.includeChildDocuments &&
+      document.collectionId ? (
         <Section>
-          <SectionHeading>
-            {t("Includes nested documents")}
-          </SectionHeading>
+          <SectionHeading>{t("Includes nested documents")}</SectionHeading>
           <NestedDocsList
             documentId={document.id}
             collectionId={document.collectionId}
@@ -330,7 +423,9 @@ function PublicAccess(
                 {parentShare.collectionId ? (
                   <Trans>
                     Collection{" "}
-                    <UnderlinedLink to={`/collection/${parentShare.collectionId}`}>
+                    <UnderlinedLink
+                      to={`/collection/${parentShare.collectionId}`}
+                    >
                       {parentShare.sourceTitle}
                     </UnderlinedLink>
                   </Trans>

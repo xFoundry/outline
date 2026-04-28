@@ -130,6 +130,8 @@ export default function useDictionary() {
       formattingControls: t("Formatting controls"),
       distributeColumns: t("Distribute columns"),
       wrapText: t("Wrap text"),
+      collapseCode: t("Collapse"),
+      expandCode: t("Expand"),
     }),
     [t]
   );

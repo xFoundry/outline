@@ -31,7 +31,7 @@ function SettingsSidebar() {
 
   const groupedConfig = groupBy(
     configs.filter((item) =>
-      item.group === "Integrations" && item.pluginId
+      item.group === t("Integrations") && item.pluginId
         ? integrations.findByService(item.pluginId)
         : true
     ),
@@ -44,7 +44,6 @@ function SettingsSidebar() {
 
   return (
     <Sidebar>
-      <HistoryNavigation />
       <SidebarButton
         title={t("Return to App")}
         image={<StyledBackIcon />}
@@ -96,12 +95,17 @@ function SettingsSidebar() {
           )}
         </Scrollable>
       </Flex>
+      <HistoryNavigation />
     </Sidebar>
   );
 }
 
 const StyledBackIcon = styled(BackIcon)`
-  margin-left: 4px;
+  margin-inline-start: 4px;
+
+  [dir="rtl"] & {
+    transform: rotate(180deg);
+  }
 `;
 
 export default observer(SettingsSidebar);

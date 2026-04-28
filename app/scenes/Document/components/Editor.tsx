@@ -70,7 +70,7 @@ function DocumentEditor(props: Props, ref: React.RefObject<any>) {
   const team = useCurrentTeam({ rejectOnEmpty: false });
   const sidebarContext = useLocationSidebarContext();
   const params = useQuery();
-  const { shareId } = useShare();
+  const { shareId, showLastUpdated } = useShare();
   const {
     document,
     onChangeTitle,
@@ -93,7 +93,7 @@ function DocumentEditor(props: Props, ref: React.RefObject<any>) {
   }, [ref]);
 
   React.useEffect(() => {
-    if (focusedComment) {
+    if (focusedComment && focusedComment.documentId === document.id) {
       const viewingResolved = params.get("resolved") === "";
       if (
         (focusedComment.isResolved && !viewingResolved) ||
@@ -127,7 +127,7 @@ function DocumentEditor(props: Props, ref: React.RefObject<any>) {
   // Create a Comment model in local store when a comment mark is created, this
   // acts as a local draft before submission.
   const handleDraftComment = React.useCallback(
-    (commentId: string, createdById: string) => {
+    (commentId: string, createdById: string, options?: { focus: boolean }) => {
       if (comments.get(commentId) || createdById !== user?.id) {
         return;
       }
@@ -143,7 +143,10 @@ function DocumentEditor(props: Props, ref: React.RefObject<any>) {
       );
       comment.id = commentId;
       comments.add(comment);
-      setFocusedCommentId(commentId);
+
+      if (options?.focus) {
+        setFocusedCommentId(commentId);
+      }
     },
     [comments, user?.id, props.id]
   );
@@ -209,7 +212,7 @@ function DocumentEditor(props: Props, ref: React.RefObject<any>) {
         placeholder={t("Untitled")}
       />
       {shareId ? (
-        document.updatedAt ? (
+        showLastUpdated && document.updatedAt ? (
           <SharedMeta type="tertiary">
             {t("Last updated")} <Time dateTime={document.updatedAt} addSuffix />
           </SharedMeta>
@@ -217,17 +220,13 @@ function DocumentEditor(props: Props, ref: React.RefObject<any>) {
       ) : !rest.template ? (
         <DocumentMeta
           document={document as Document}
-          to={
-            shareId
-              ? undefined
-              : {
-                  pathname:
-                    match.path === matchDocumentHistory
-                      ? documentPath(document as Document)
-                      : documentHistoryPath(document as Document),
-                  state: { sidebarContext },
-                }
-          }
+          to={{
+            pathname:
+              match.path === matchDocumentHistory
+                ? documentPath(document as Document)
+                : documentHistoryPath(document as Document),
+            state: { sidebarContext },
+          }}
           rtl={direction === "rtl"}
         />
       ) : null}

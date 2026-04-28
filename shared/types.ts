@@ -32,6 +32,13 @@ export enum DirectionFilter {
   DESC = "DESC",
 }
 
+/** Model types that support search indexing. */
+export enum SearchableModel {
+  Document = "document",
+  Collection = "collection",
+  Comment = "comment",
+}
+
 export enum CollectionStatusFilter {
   Archived = "archived",
 }
@@ -587,7 +594,7 @@ export type UnfurlResponse = {
     /** Document summary */
     summary: string;
     /** Viewer's last activity on this document */
-    lastActivityByViewer: string;
+    lastActivityByViewer?: string;
   };
   [UnfurlResourceType.Issue]: {
     /** The resource type */
@@ -669,6 +676,8 @@ export type UnfurlResponse = {
 export enum QueryNotices {
   UnsubscribeDocument = "unsubscribe-document",
   UnsubscribeCollection = "unsubscribe-collection",
+  Subscribed = "subscribed",
+  Unsubscribed = "unsubscribed",
 }
 
 export type JSONValue =
@@ -712,6 +721,8 @@ export enum TextEditMode {
   Append = "append",
   /** Prepend new content to the beginning of the document. */
   Prepend = "prepend",
+  /** Patch specific content within the document by finding and replacing text. */
+  Patch = "patch",
 }
 
 export enum EmojiCategory {
