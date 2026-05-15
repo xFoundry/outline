@@ -54,7 +54,7 @@ do not contend for the same small pool:
   - `SERVICES=web,websockets`
   - `WEB_CONCURRENCY=1`
   - `DATABASE_CONNECTION_POOL_MIN=0`
-  - `DATABASE_CONNECTION_POOL_MAX=5`
+  - `DATABASE_CONNECTION_POOL_MAX=10`
   - `COLLABORATION_URL=<public collaboration URL>`
 - `outline-worker`
   - `SERVICES=worker`
@@ -69,3 +69,21 @@ do not contend for the same small pool:
 
 Leave `REDIS_COLLABORATION_URL` unset while collaboration runs as a singleton.
 Only configure it when you scale the collaboration service beyond one instance.
+
+## Railway Database Stabilization
+
+For the xFoundry production deployment, keep Railway Postgres tuned to reduce
+short checkpoint stalls before increasing application pools further:
+
+- `checkpoint_timeout=15min`
+- `checkpoint_completion_target=0.9`
+- `max_wal_size=4GB`
+- `min_wal_size=1GB`
+- `effective_cache_size=16GB`
+- keep `shared_buffers` at the Railway image default unless the container
+  shared-memory limit has been tested in a maintenance window.
+
+If `shared_buffers` is increased, set Railway's `RAILWAY_SHM_SIZE_BYTES` on the
+Postgres service before restart. The production service currently keeps
+`RAILWAY_SHM_SIZE_BYTES=8589934592` as recovery headroom, while
+`shared_buffers` remains at the image default.
