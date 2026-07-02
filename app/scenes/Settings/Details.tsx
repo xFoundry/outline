@@ -367,7 +367,7 @@ function Details() {
               value={imageBorderRadius}
               onChange={handleImageBorderRadiusChange}
               label={t("Image corners")}
-              hideLabel
+              labelHidden
             />
           </SettingRow>
           <SettingRow

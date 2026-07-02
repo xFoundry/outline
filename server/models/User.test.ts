@@ -25,7 +25,7 @@ afterAll(() => {
 });
 
 afterEach(() => {
-  jest.restoreAllMocks();
+  vi.restoreAllMocks();
 });
 
 describe("user model", () => {
@@ -284,7 +284,7 @@ describe("user model", () => {
       const firstActiveAt = user.lastActiveAt;
       const firstActiveIp = user.lastActiveIp;
 
-      const updateSpy = jest.spyOn(User, "update");
+      const updateSpy = vi.spyOn(User, "update");
       await User.touchActiveAt(user.id, {
         ip: "127.0.0.2",
         lastActiveAt: user.lastActiveAt,
@@ -304,7 +304,7 @@ describe("user model", () => {
         flags: null,
       });
 
-      const updateSpy = jest.spyOn(User, "update");
+      const updateSpy = vi.spyOn(User, "update");
       await User.touchActiveAt(user.id, {
         ip: "127.0.0.2",
         lastActiveAt: user.lastActiveAt,

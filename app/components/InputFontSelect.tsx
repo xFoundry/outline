@@ -58,7 +58,7 @@ const InputFontSelect: React.FC<Props> = ({ type, value, onChange, label }) => {
       value={value ?? SYSTEM_DEFAULT}
       onChange={handleChange}
       label={label}
-      hideLabel
+      labelHidden
     />
   );
 };

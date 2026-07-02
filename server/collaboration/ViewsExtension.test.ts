@@ -1,17 +1,18 @@
-jest.mock("@server/models", () => ({
+import type { Mock } from "vitest";
+vi.mock("@server/models", () => ({
   View: {
-    touch: jest.fn(),
+    touch: vi.fn(),
   },
   User: {
-    touchActiveAt: jest.fn(),
+    touchActiveAt: vi.fn(),
   },
 }));
 
-jest.mock("@server/logging/Logger", () => ({
+vi.mock("@server/logging/Logger", () => ({
   __esModule: true,
   default: {
-    debug: jest.fn(),
-    warn: jest.fn(),
+    debug: vi.fn(),
+    warn: vi.fn(),
   },
 }));
 
@@ -23,16 +24,16 @@ describe("ViewsExtension", () => {
   let extension: ViewsExtension;
 
   beforeEach(() => {
-    jest.useFakeTimers();
-    (View.touch as jest.Mock).mockResolvedValue(undefined);
-    (User.touchActiveAt as jest.Mock).mockResolvedValue(undefined);
+    vi.useFakeTimers();
+    (View.touch as Mock).mockResolvedValue(undefined);
+    (User.touchActiveAt as Mock).mockResolvedValue(undefined);
     extension = new ViewsExtension();
   });
 
   afterEach(async () => {
     await extension.onDestroy();
-    jest.useRealTimers();
-    jest.clearAllMocks();
+    vi.useRealTimers();
+    vi.clearAllMocks();
   });
 
   it("coalesces repeated changes and rate-limits activity writes", async () => {
@@ -51,7 +52,7 @@ describe("ViewsExtension", () => {
 
     await extension.onChange(payload);
     await extension.onChange(payload);
-    await jest.advanceTimersByTimeAsync(5_000);
+    await vi.advanceTimersByTimeAsync(5_000);
 
     expect(View.touch).toHaveBeenCalledTimes(1);
     expect(View.touch).toHaveBeenCalledWith("doc-1", "user-1", true);
@@ -65,22 +66,22 @@ describe("ViewsExtension", () => {
     );
 
     await extension.onChange(payload);
-    await jest.advanceTimersByTimeAsync(5_000);
+    await vi.advanceTimersByTimeAsync(5_000);
 
     expect(View.touch).toHaveBeenCalledTimes(1);
     expect(User.touchActiveAt).toHaveBeenCalledTimes(1);
 
-    await jest.advanceTimersByTimeAsync(60_000);
+    await vi.advanceTimersByTimeAsync(60_000);
     await extension.onChange(payload);
-    await jest.advanceTimersByTimeAsync(5_000);
+    await vi.advanceTimersByTimeAsync(5_000);
 
     expect(View.touch).toHaveBeenCalledTimes(2);
     expect(User.touchActiveAt).toHaveBeenCalledTimes(1);
   });
 
   it("never rejects when async activity flushes fail", async () => {
-    (View.touch as jest.Mock).mockRejectedValueOnce(new Error("view failed"));
-    (User.touchActiveAt as jest.Mock).mockRejectedValueOnce(
+    (View.touch as Mock).mockRejectedValueOnce(new Error("view failed"));
+    (User.touchActiveAt as Mock).mockRejectedValueOnce(
       new Error("user failed")
     );
 
@@ -97,7 +98,7 @@ describe("ViewsExtension", () => {
       } as any)
     ).resolves.toBeUndefined();
 
-    await jest.advanceTimersByTimeAsync(5_000);
+    await vi.advanceTimersByTimeAsync(5_000);
 
     expect(Logger.warn).toHaveBeenCalledTimes(2);
     expect(Logger.warn).toHaveBeenCalledWith(

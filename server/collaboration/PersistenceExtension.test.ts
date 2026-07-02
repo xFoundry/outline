@@ -1,35 +1,38 @@
+import type { Mock } from "vitest";
 import * as Y from "yjs";
 
-jest.mock("@server/storage/redis", () => ({
+vi.mock("@server/storage/redis", () => ({
   __esModule: true,
   default: {
     defaultClient: {
-      smembers: jest.fn(),
-      sadd: jest.fn(),
-      set: jest.fn(),
+      smembers: vi.fn(),
+      sadd: vi.fn(),
+      set: vi.fn(),
     },
   },
 }));
 
-jest.mock("../commands/documentCollaborativeUpdater", () => ({
+vi.mock("../commands/documentCollaborativeUpdater", () => ({
   __esModule: true,
-  default: jest.fn(),
+  default: vi.fn(),
 }));
 
-jest.mock("../queues/tasks/CollaborativeDocumentPersistenceTask", () => ({
+vi.mock("../queues/tasks/CollaborativeDocumentPersistenceTask", () => ({
   __esModule: true,
-  default: jest.fn().mockImplementation(() => ({
-    schedule: jest.fn(),
-  })),
+  default: vi.fn().mockImplementation(function () {
+    return {
+      schedule: vi.fn(),
+    };
+  }),
 }));
 
-jest.mock("@server/logging/Logger", () => ({
+vi.mock("@server/logging/Logger", () => ({
   __esModule: true,
   default: {
-    debug: jest.fn(),
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
   },
 }));
 
@@ -44,22 +47,24 @@ describe("PersistenceExtension", () => {
 
   beforeEach(() => {
     extension = new PersistenceExtension();
-    (Redis.defaultClient.smembers as jest.Mock).mockReset();
-    (Redis.defaultClient.set as jest.Mock).mockReset();
-    (documentCollaborativeUpdater as jest.Mock).mockReset();
+    (Redis.defaultClient.smembers as Mock).mockReset();
+    (Redis.defaultClient.set as Mock).mockReset();
+    (documentCollaborativeUpdater as Mock).mockReset();
     (
-      CollaborativeDocumentPersistenceTask as unknown as jest.Mock
-    ).mockImplementation(() => ({
-      schedule: jest.fn().mockResolvedValue(undefined),
-    }));
-    (CollaborativeDocumentPersistenceTask as unknown as jest.Mock).mockClear();
-    (Logger.warn as jest.Mock).mockReset();
-    (Logger.error as jest.Mock).mockReset();
-    (Redis.defaultClient.set as jest.Mock).mockResolvedValue("OK");
+      CollaborativeDocumentPersistenceTask as unknown as Mock
+    ).mockImplementation(function () {
+      return {
+        schedule: vi.fn().mockResolvedValue(undefined),
+      };
+    });
+    (CollaborativeDocumentPersistenceTask as unknown as Mock).mockClear();
+    (Logger.warn as Mock).mockReset();
+    (Logger.error as Mock).mockReset();
+    (Redis.defaultClient.set as Mock).mockResolvedValue("OK");
   });
 
   it("preserves no changes, no persist when there are no collaborators", async () => {
-    (Redis.defaultClient.smembers as jest.Mock).mockResolvedValue([]);
+    (Redis.defaultClient.smembers as Mock).mockResolvedValue([]);
 
     await extension.onStoreDocument({
       document: new Y.Doc(),
@@ -75,8 +80,8 @@ describe("PersistenceExtension", () => {
   });
 
   it("schedules a deduplicated retry for retryable persistence failures", async () => {
-    (Redis.defaultClient.smembers as jest.Mock).mockResolvedValue(["user-1"]);
-    (documentCollaborativeUpdater as jest.Mock).mockRejectedValueOnce(
+    (Redis.defaultClient.smembers as Mock).mockResolvedValue(["user-1"]);
+    (documentCollaborativeUpdater as Mock).mockRejectedValueOnce(
       Object.assign(new Error("Operation timeout"), {
         name: "SequelizeConnectionAcquireTimeoutError",
       })
@@ -95,7 +100,7 @@ describe("PersistenceExtension", () => {
     } as any);
 
     const taskInstance = (
-      CollaborativeDocumentPersistenceTask as unknown as jest.Mock
+      CollaborativeDocumentPersistenceTask as unknown as Mock
     ).mock.results[0].value;
 
     expect(Redis.defaultClient.set).toHaveBeenCalledTimes(1);

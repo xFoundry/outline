@@ -7,13 +7,13 @@ import {
 } from "@server/test/factories";
 
 afterEach(() => {
-  jest.restoreAllMocks();
+  vi.restoreAllMocks();
 });
 
 describe("Team", () => {
   describe("touchActiveAt", () => {
     it("should skip writes inside the 5 minute window", async () => {
-      jest.useFakeTimers().setSystemTime(new Date("2018-01-02T00:00:00.000Z"));
+      vi.useFakeTimers().setSystemTime(new Date("2018-01-02T00:00:00.000Z"));
       try {
         const team = await buildTeam({
           lastActiveAt: null,
@@ -25,7 +25,7 @@ describe("Team", () => {
         await team.reload();
 
         const firstActiveAt = team.lastActiveAt;
-        const updateSpy = jest.spyOn(Team, "update");
+        const updateSpy = vi.spyOn(Team, "update");
 
         await Team.touchActiveAt(team.id, {
           lastActiveAt: team.lastActiveAt,
@@ -35,7 +35,7 @@ describe("Team", () => {
         expect(updateSpy).not.toHaveBeenCalled();
         expect(team.lastActiveAt).toEqual(firstActiveAt);
       } finally {
-        jest.useRealTimers();
+        vi.useRealTimers();
       }
     });
   });

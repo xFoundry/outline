@@ -18,7 +18,7 @@ import { getTestServer, withAPIContext } from "@server/test/support";
 const server = getTestServer();
 
 afterEach(() => {
-  jest.restoreAllMocks();
+  vi.restoreAllMocks();
 });
 
 describe("#shares.list", () => {
@@ -273,16 +273,17 @@ describe("#shares.create", () => {
   });
 
   it("should not open a request transaction", async () => {
-    const transactionSpy = jest.spyOn(sequelize, "transaction");
     const user = await buildUser();
     const document = await buildDocument({
       userId: user.id,
       teamId: user.teamId,
     });
 
-    const res = await server.post("/api/shares.create", {
+    // Spy after fixture setup: Document.create hooks legitimately use a
+    // transaction; the assertion is about the request itself.
+    const transactionSpy = vi.spyOn(sequelize, "transaction");
+    const res = await server.post("/api/shares.create", user, {
       body: {
-        token: user.getJwtToken(),
         documentId: document.id,
       },
     });
