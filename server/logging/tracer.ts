@@ -14,6 +14,7 @@ function isExplicitlyNonReportable(error: Error): error is ReportableError {
 }
 
 type PrivateDatadogContext = {
+  // oxlint-disable-next-line @typescript-eslint/no-explicit-any
   req: Record<string, any> & {
     _datadog?: {
       span?: Span;
@@ -30,6 +31,10 @@ if (env.DD_API_KEY) {
     env: env.ENVIRONMENT,
     logInjection: true,
   });
+
+  // Disable per-middleware spans so that non-reportable errors are not captured
+  // This is also generally excessive noise
+  tracer.use("koa", { middleware: false });
 }
 
 const getCurrentSpan = (): Span | null => tracer.scope().active();
@@ -41,7 +46,10 @@ const getCurrentSpan = (): Span | null => tracer.scope().active();
  * @param tags An object with the tags to add to the span
  * @param span An optional span object to add the tags to. If none provided,the current span will be used.
  */
-export function addTags(tags: Record<string, any>, span?: Span | null): void {
+export function addTags(
+  tags: Parameters<Span["addTags"]>[0],
+  span?: Span | null
+): void {
   if (tracer) {
     const currentSpan = span || getCurrentSpan();
 

@@ -5,22 +5,23 @@ import {
   AlignImageCenterIcon,
   AlignFullWidthIcon,
 } from "outline-icons";
-import type { EditorState } from "prosemirror-state";
 import * as React from "react";
 import { isNodeActive } from "@shared/editor/queries/isNodeActive";
-import type { MenuItem } from "@shared/editor/types";
-import type { Dictionary } from "~/hooks/useDictionary";
+import type { MenuItem, SelectionContext } from "@shared/editor/types";
+import { t } from "i18next";
 
-export default function videoMenuItems(
-  state: EditorState,
-  readOnly: boolean | undefined,
-  dictionary: Dictionary
-): MenuItem[] {
-  if (readOnly) {
+/**
+ * Returns menu items for the video selection toolbar.
+ *
+ * @param ctx - the current selection context.
+ * @returns an array of menu items.
+ */
+export default function videoMenuItems(ctx: SelectionContext): MenuItem[] {
+  if (ctx.readOnly) {
     return [];
   }
 
-  const { schema } = state;
+  const { schema, state } = ctx;
   const isLeftAligned = isNodeActive(schema.nodes.video, {
     layoutClass: "left-50",
   });
@@ -34,29 +35,29 @@ export default function videoMenuItems(
   return [
     {
       name: "alignVideoLeft",
-      tooltip: dictionary.alignLeft,
+      tooltip: t("Align left"),
       icon: <AlignImageLeftIcon />,
       active: isLeftAligned,
     },
     {
       name: "alignVideoCenter",
-      tooltip: dictionary.alignCenter,
+      tooltip: t("Align center"),
       icon: <AlignImageCenterIcon />,
-      active: (state) =>
-        isNodeActive(schema.nodes.video)(state) &&
-        !isLeftAligned(state) &&
-        !isRightAligned(state) &&
-        !isFullWidthAligned(state),
+      active: (s) =>
+        isNodeActive(schema.nodes.video)(s) &&
+        !isLeftAligned(s) &&
+        !isRightAligned(s) &&
+        !isFullWidthAligned(s),
     },
     {
       name: "alignVideoRight",
-      tooltip: dictionary.alignRight,
+      tooltip: t("Align right"),
       icon: <AlignImageRightIcon />,
       active: isRightAligned,
     },
     {
       name: "alignVideoFullWidth",
-      tooltip: dictionary.alignFullWidth,
+      tooltip: t("Full width"),
       icon: <AlignFullWidthIcon />,
       active: isFullWidthAligned,
     },
@@ -65,7 +66,7 @@ export default function videoMenuItems(
     },
     {
       name: "dimensions",
-      tooltip: dictionary.dimensions,
+      tooltip: `${t("Width")} × ${t("Height")}`,
       visible: !isFullWidthAligned(state),
       skipIcon: true,
     },
@@ -74,7 +75,7 @@ export default function videoMenuItems(
     },
     {
       name: "deleteVideo",
-      tooltip: dictionary.deleteVideo,
+      tooltip: t("Delete video"),
       icon: <TrashIcon />,
     },
   ];

@@ -1,4 +1,5 @@
-import isEqual from "lodash/isEqual";
+import type { HocuspocusProvider } from "@hocuspocus/provider";
+import { isEqual } from "es-toolkit/compat";
 import { Plugin } from "prosemirror-state";
 import {
   ySyncPlugin,
@@ -6,6 +7,8 @@ import {
   yUndoPlugin,
   undo,
   redo,
+  undoCommand,
+  redoCommand,
 } from "y-prosemirror";
 import * as Y from "yjs";
 import Extension from "@shared/editor/lib/Extension";
@@ -20,7 +23,19 @@ type UserAwareness = {
   head: object;
 };
 
-export default class Multiplayer extends Extension {
+/**
+ * Options for the Multiplayer extension.
+ */
+type MultiplayerOptions = {
+  /** The local user, used for cursor presence and the persistent user/client mapping. */
+  user: { id: string; color: string };
+  /** The Hocuspocus provider used for awareness and document sync. */
+  provider: HocuspocusProvider;
+  /** The shared Yjs document this editor is bound to. */
+  document: Y.Doc;
+};
+
+export default class Multiplayer extends Extension<MultiplayerOptions> {
   get name() {
     return "multiplayer";
   }
@@ -121,6 +136,14 @@ export default class Multiplayer extends Extension {
     return {
       undo: () => undo,
       redo: () => redo,
+    };
+  }
+
+  keys() {
+    return {
+      "Mod-z": undoCommand,
+      "Mod-y": redoCommand,
+      "Shift-Mod-z": redoCommand,
     };
   }
 }

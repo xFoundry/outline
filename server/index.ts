@@ -14,7 +14,7 @@ import Router from "koa-router";
 import type { AddressInfo } from "node:net";
 import stoppable from "stoppable";
 import throng from "throng";
-import escape from "lodash/escape";
+import { escape } from "es-toolkit/compat";
 import Logger from "./logging/Logger";
 import services from "./services";
 import { getArg } from "./utils/args";
@@ -184,8 +184,8 @@ async function start(_id: number, disconnect: () => void) {
     }
 
     Logger.info("lifecycle", `Starting ${name} service`);
-    const init = services[name as keyof typeof services];
-    await init(app, server as https.Server, env.SERVICES);
+    const { default: init } = await services[name as keyof typeof services]();
+    await Promise.resolve(init(app, server as https.Server, env.SERVICES));
   }
 
   server.on("error", (err) => {
@@ -258,8 +258,11 @@ const isWebProcess =
   env.SERVICES.includes("api") ||
   env.SERVICES.includes("collaboration");
 
+const isWorkerProcess =
+  env.SERVICES.length === 1 && env.SERVICES.includes("worker");
+
 void throng({
   master,
   worker: start,
-  count: isWebProcess ? webProcessCount : undefined,
+  count: isWorkerProcess ? 1 : isWebProcess ? webProcessCount : undefined,
 });

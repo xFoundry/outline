@@ -1,7 +1,5 @@
 import invariant from "invariant";
-import escapeRegExp from "lodash/escapeRegExp";
-import find from "lodash/find";
-import map from "lodash/map";
+import { escapeRegExp, find, map } from "es-toolkit/compat";
 import queryParser from "pg-tsquery";
 import type {
   BindOrReplacements,
@@ -236,13 +234,13 @@ export default class PostgresSearchProvider extends BaseSearchProvider {
         where,
         limit,
         offset,
-      }) as any as Promise<RankedDocument[]>;
+      }) as unknown as Promise<RankedDocument[]>;
 
       const countQuery = Document.unscoped().count({
         // @ts-expect-error Types are incorrect for count
         replacements: findOptions.replacements,
         where,
-      }) as any as Promise<number>;
+      }) as unknown as Promise<number>;
       const [results, count] = await Promise.all([resultsQuery, countQuery]);
 
       // Final query to get associated document data
@@ -428,7 +426,7 @@ export default class PostgresSearchProvider extends BaseSearchProvider {
         where,
         limit,
         offset,
-      })) as any as RankedDocument[];
+      })) as unknown as RankedDocument[];
 
       const countQuery = Document.unscoped().count({
         // @ts-expect-error Types are incorrect for count
@@ -436,7 +434,7 @@ export default class PostgresSearchProvider extends BaseSearchProvider {
         include,
         replacements: findOptions.replacements,
         where,
-      }) as any as Promise<number>;
+      }) as unknown as Promise<number>;
 
       // Final query to get associated document data
       const [documents, count] = await Promise.all([
@@ -863,10 +861,10 @@ export default class PostgresSearchProvider extends BaseSearchProvider {
         // spaces. Ref: https://github.com/caub/pg-tsquery/issues/27
         quotedSearch ? limitedQuery.trim() : `${limitedQuery.trim()}*`
       )
-        // Remove any trailing join characters
-        .replace(/&$/, "")
-        // Remove any trailing escape characters
-        .replace(/\\$/, "")
+        // Strip any trailing join (&) or escape (\) characters, in any
+        // combination, so we never hand to_tsquery an operator with no
+        // operand (e.g. a tail of "&\" would leave a dangling "&").
+        .replace(/[&\\]+$/, "")
     );
   }
 

@@ -14,6 +14,7 @@ import styled from "styled-components";
 import { s } from "@shared/styles";
 import { StatusFilter } from "@shared/types";
 import type Collection from "~/models/Collection";
+import type DocumentsStore from "~/stores/DocumentsStore";
 import CenteredContent from "~/components/CenteredContent";
 import { CollectionBreadcrumb } from "~/components/CollectionBreadcrumb";
 import Heading from "~/components/Heading";
@@ -178,7 +179,7 @@ const CollectionScene = observer(function CollectionScene_() {
           <Notices collection={collection} />
           <Header
             collection={collection}
-            isEditing={isEditRoute && !!user?.separateEditMode}
+            isEditing={isEditRoute || !user?.separateEditMode}
           />
 
           <PinnedDocuments
@@ -362,9 +363,15 @@ const Content = styled.div`
 `;
 
 const RecentDocuments = observer(
-  ({ collection, documents }: { collection: Collection; documents: any }) => {
+  ({
+    collection,
+    documents,
+  }: {
+    collection: Collection;
+    documents: DocumentsStore;
+  }) => {
     useEffect(() => {
-      collection.fetchDocuments();
+      void collection.fetchDocuments();
     }, [collection]);
 
     return (

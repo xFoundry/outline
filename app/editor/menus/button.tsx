@@ -5,22 +5,23 @@ import {
   EditIcon,
   TrashIcon,
 } from "outline-icons";
-import type { EditorState } from "prosemirror-state";
 import * as React from "react";
 import { isNodeActive } from "@shared/editor/queries/isNodeActive";
-import type { MenuItem } from "@shared/editor/types";
-import type { Dictionary } from "~/hooks/useDictionary";
+import type { MenuItem, SelectionContext } from "@shared/editor/types";
+import { t } from "i18next";
 
-export default function buttonMenuItems(
-  state: EditorState,
-  readOnly: boolean | undefined,
-  dictionary: Dictionary
-): MenuItem[] {
-  if (readOnly) {
+/**
+ * Returns menu items for the button selection toolbar.
+ *
+ * @param ctx - the current selection context.
+ * @returns an array of menu items.
+ */
+export default function buttonMenuItems(ctx: SelectionContext): MenuItem[] {
+  if (ctx.readOnly) {
     return [];
   }
 
-  const { schema } = state;
+  const { schema } = ctx;
   const isLeftAligned = isNodeActive(schema.nodes.button, {
     alignment: "left",
   });
@@ -34,7 +35,7 @@ export default function buttonMenuItems(
   return [
     {
       name: "editButtonUrl",
-      tooltip: dictionary.editLink,
+      tooltip: t("Edit link"),
       icon: <EditIcon />,
     },
     {
@@ -69,19 +70,19 @@ export default function buttonMenuItems(
     },
     {
       name: "alignButtonLeft",
-      tooltip: dictionary.alignLeft,
+      tooltip: t("Align left"),
       icon: <AlignImageLeftIcon />,
       active: isLeftAligned,
     },
     {
       name: "alignButtonCenter",
-      tooltip: dictionary.alignCenter,
+      tooltip: t("Align center"),
       icon: <AlignImageCenterIcon />,
       active: isCenterAligned,
     },
     {
       name: "alignButtonRight",
-      tooltip: dictionary.alignRight,
+      tooltip: t("Align right"),
       icon: <AlignImageRightIcon />,
       active: isRightAligned,
     },
@@ -90,7 +91,7 @@ export default function buttonMenuItems(
     },
     {
       name: "deleteButton",
-      tooltip: dictionary.deleteButton,
+      tooltip: t("Delete button"),
       icon: <TrashIcon />,
     },
   ];

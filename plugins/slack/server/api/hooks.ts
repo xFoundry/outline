@@ -1,6 +1,6 @@
 import { t } from "i18next";
 import Router from "koa-router";
-import escapeRegExp from "lodash/escapeRegExp";
+import { escapeRegExp } from "es-toolkit/compat";
 import queryString from "query-string";
 import { z } from "zod";
 import { IntegrationService, IntegrationType } from "@shared/types";
@@ -403,28 +403,41 @@ async function findUserForRequest(
     return integration.user;
   }
 
-  // Fallback to authentication provider if the user has Slack sign-in
-  const user = await User.findOne({
+  // Fallback to authentication provider if the user has Slack sign-in.
+  // Scoped via AuthenticationProvider to the matching Slack workspace so a
+  // colliding providerId from another team/provider cannot resolve.
+  const authentication = await UserAuthentication.findOne({
+    where: {
+      providerId: serviceUserId,
+    },
+    order: [["createdAt", "DESC"]],
     include: [
       {
-        where: {
-          providerId: serviceUserId,
-        },
-        order: [["createdAt", "DESC"]],
-        model: UserAuthentication,
-        as: "authentications",
+        model: AuthenticationProvider,
+        as: "authenticationProvider",
         required: true,
+        where: {
+          name: "slack",
+          providerId: serviceTeamId,
+        },
       },
       {
-        model: Team,
-        as: "team",
+        model: User,
+        as: "user",
         required: true,
+        include: [
+          {
+            model: Team,
+            as: "team",
+            required: true,
+          },
+        ],
       },
     ],
   });
 
-  if (user) {
-    return user;
+  if (authentication?.user) {
+    return authentication.user;
   }
 
   return;
