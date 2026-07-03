@@ -12,6 +12,9 @@ env:
 
 jobs:
   build-arm:
+    # Publishing runs on upstream's Blacksmith runners and Docker Hub
+    # credentials; forks have neither, so runs would queue forever.
+    if: github.repository == 'outline/outline'
     runs-on: blacksmith-8vcpu-ubuntu-2404-arm
     steps:
       - name: Checkout
@@ -87,6 +90,7 @@ jobs:
           retention-days: 1
 
   build-amd:
+    if: github.repository == 'outline/outline'
     runs-on: blacksmith-8vcpu-ubuntu-2404
     steps:
       - name: Checkout
@@ -162,6 +166,7 @@ jobs:
           retention-days: 1
 
   merge:
+    if: github.repository == 'outline/outline'
     runs-on: blacksmith-8vcpu-ubuntu-2404
     needs:
       - build-amd

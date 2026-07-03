@@ -88,13 +88,8 @@ export function SelectionToolbar(props: Props) {
     selection instanceof NodeSelection && selection.node.type.name === "embed";
   const isButtonSelection =
     selection instanceof NodeSelection && selection.node.type.name === "button";
-  const isVideoSelection =
-    selection instanceof NodeSelection && selection.node.type.name === "video";
   const isImageSelection =
     selection instanceof NodeSelection && selection.node.type.name === "image";
-  const isAttachmentSelection =
-    selection instanceof NodeSelection &&
-    selection.node.type.name === "attachment";
 
   const isCodeSelection = isInCode(state, { onlyBlock: true });
   const isNoticeSelection = isInNotice(state);
