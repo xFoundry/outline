@@ -647,7 +647,10 @@ class User extends ParanoidModel<
       force || !this.lastActiveAt || this.lastActiveAt < fiveMinutesAgo;
     const shouldPersistFlag = !!flag && this.getFlag(flag) !== 1;
 
-    await User.touchActiveAt(this.id, {
+    // Late-bound class reference: dispatch through the instance's constructor
+    // rather than the module-scope `User`, which can resolve to a duplicate,
+    // uninitialized copy of this class under Vitest's per-worker module graph.
+    await (this.constructor as typeof User).touchActiveAt(this.id, {
       ip,
       force,
       lastActiveAt: this.lastActiveAt,
