@@ -72,7 +72,7 @@ describe("PersistenceExtension", () => {
       documentName: "document.doc-1",
       clientsCount: 0,
       requestParameters: new URLSearchParams(),
-    } as any);
+    } as unknown as Parameters<PersistenceExtension["onStoreDocument"]>[0]);
 
     expect(documentCollaborativeUpdater).not.toHaveBeenCalled();
     expect(Redis.defaultClient.set).not.toHaveBeenCalled();
@@ -97,7 +97,7 @@ describe("PersistenceExtension", () => {
       documentName: "document.doc-2",
       clientsCount: 0,
       requestParameters: new URLSearchParams("editorVersion=1.0.0"),
-    } as any);
+    } as unknown as Parameters<PersistenceExtension["onStoreDocument"]>[0]);
 
     const taskInstance = (
       CollaborativeDocumentPersistenceTask as unknown as Mock

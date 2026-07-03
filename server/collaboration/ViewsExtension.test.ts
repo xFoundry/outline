@@ -48,7 +48,7 @@ describe("ViewsExtension", () => {
           id: "user-1",
         },
       },
-    } as any;
+    } as unknown as Parameters<ViewsExtension["onChange"]>[0];
 
     await extension.onChange(payload);
     await extension.onChange(payload);
@@ -95,7 +95,7 @@ describe("ViewsExtension", () => {
             id: "user-2",
           },
         },
-      } as any)
+      } as unknown as Parameters<ViewsExtension["onChange"]>[0])
     ).resolves.toBeUndefined();
 
     await vi.advanceTimersByTimeAsync(5_000);
