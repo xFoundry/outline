@@ -28,7 +28,7 @@ const router = new Router();
 
 router.post(
   "files.create",
-  rateLimiter(RateLimiterStrategy.TenPerMinute),
+  rateLimiter(RateLimiterStrategy.TwentyFivePerMinute),
   auth(),
   validate(T.FilesCreateSchema),
   timeout(30 * 60 * 1000), // 30 minutes for large file uploads
@@ -42,6 +42,10 @@ router.post(
     const actor = ctx.state.auth.user;
     const { key } = ctx.input.body;
     const file = ctx.input.file;
+
+    if (!file) {
+      throw ValidationError("Request must include a file parameter");
+    }
 
     const attachment = await Attachment.findOne({
       where: { key },

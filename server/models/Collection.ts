@@ -1,10 +1,6 @@
 /* oxlint-disable lines-between-class-members */
 import fractionalIndex from "fractional-index";
-import find from "lodash/find";
-import findIndex from "lodash/findIndex";
-import isNil from "lodash/isNil";
-import remove from "lodash/remove";
-import uniq from "lodash/uniq";
+import { find, findIndex, isNil, remove, uniq } from "es-toolkit/compat";
 import type {
   Identifier,
   Transaction,
@@ -49,6 +45,7 @@ import {
 import isUUID from "validator/lib/isUUID";
 import type {
   CollectionSort,
+  ImportableIntegrationService,
   ProsemirrorData,
   SourceMetadata,
   NavigationNode,
@@ -58,6 +55,7 @@ import { UrlHelper } from "@shared/utils/UrlHelper";
 import { sortNavigationNodes } from "@shared/utils/collections";
 import slugify from "@shared/utils/slugify";
 import { CollectionValidation } from "@shared/validations";
+import { parser } from "@server/editor";
 import { ValidationError } from "@server/errors";
 import type { APIContext } from "@server/types";
 import { CacheHelper } from "@server/utils/CacheHelper";
@@ -324,10 +322,28 @@ class Collection extends ParanoidModel<
 
   /** The frontend path to this collection. */
   get path(): string {
-    if (!this.name) {
-      return `/collection/untitled-${this.urlId}`;
+    return Collection.getPath({
+      name: this.name,
+      urlId: this.urlId,
+    });
+  }
+
+  /**
+   * Returns the frontend path for a collection.
+   *
+   * @param name The collection name.
+   * @param urlId The collection URL ID.
+   * @returns the frontend path for the collection.
+   */
+  static getPath({ name, urlId }: { name: string; urlId: string }): string {
+    if (!name) {
+      return `/collection/untitled-${urlId}`;
     }
-    return `/collection/${slugify(this.name)}-${this.urlId}`;
+    const slugifiedName = slugify(name);
+    if (!slugifiedName) {
+      return `/collection/untitled-${urlId}`;
+    }
+    return `/collection/${slugifiedName}-${urlId}`;
   }
 
   /**
@@ -349,9 +365,21 @@ class Collection extends ParanoidModel<
 
   @BeforeSave
   static async onBeforeSave(model: Collection) {
-    if (!model.content) {
+    const descriptionChanged = model.changed("description");
+    const contentChanged = model.changed("content");
+
+    if (descriptionChanged && !contentChanged) {
+      model.content = model.description
+        ? (parser.parse(model.description)?.toJSON() ?? null)
+        : null;
+    } else if (contentChanged && !descriptionChanged) {
+      model.description = model.content
+        ? await DocumentHelper.toMarkdown(model, { includeTitle: false })
+        : null;
+    } else if (!model.content) {
       model.content = await DocumentHelper.toJSON(model);
     }
+
     if (model.changed("documentStructure")) {
       await CacheHelper.clearData(
         RedisPrefixHelper.getCollectionDocumentsKey(model.id)
@@ -369,7 +397,7 @@ class Collection extends ParanoidModel<
         CacheHelper.setData(
           RedisPrefixHelper.getCollectionDocumentsKey(model.id),
           model.documentStructure,
-          60
+          Collection.DOCUMENT_STRUCTURE_CACHE_TTL
         );
 
       if (options.transaction) {
@@ -510,7 +538,7 @@ class Collection extends ParanoidModel<
   importId: string | null;
 
   @BelongsTo(() => Import, "apiImportId")
-  apiImport: Import<any> | null;
+  apiImport: Import<ImportableIntegrationService> | null;
 
   @ForeignKey(() => Import)
   @Column(DataType.UUID)
@@ -559,17 +587,39 @@ class Collection extends ParanoidModel<
       direction: "asc",
     };
 
+  static DOCUMENT_STRUCTURE_CACHE_TTL = 60;
+
   /**
    * Returns an array of unique userIds that are members of a collection,
    * either via group or direct membership.
    *
    * @param collectionId
+   * @param permission optional permission filter
+   *
    * @returns userIds
    */
-  static async membershipUserIds(collectionId: string) {
+  static async membershipUserIds(
+    collectionId: string,
+    permission?: CollectionPermission
+  ) {
     const collection = await this.scope("withAllMemberships").findOne({
       where: { id: collectionId },
+      include: [
+        {
+          association: "memberships",
+          required: false,
+          ...(permission ? { where: { permission } } : {}),
+          separate: true,
+        },
+        {
+          association: "groupMemberships",
+          required: false,
+          ...(permission ? { where: { permission } } : {}),
+          separate: true,
+        },
+      ],
     });
+
     if (!collection) {
       return [];
     }
@@ -705,6 +755,29 @@ class Collection extends ParanoidModel<
     return !this.permission;
   }
 
+  /**
+   * Returns the collection's documentStructure via cache, populating it on
+   * miss. The cache is kept fresh by this model's save hooks, so callers
+   * should prefer this over re-fetching the column directly.
+   *
+   * @returns the cached documentStructure, or null when the collection has none.
+   */
+  getCachedDocumentStructure = async (): Promise<NavigationNode[] | null> => {
+    const result = await CacheHelper.getDataOrSet<NavigationNode[] | null>(
+      RedisPrefixHelper.getCollectionDocumentsKey(this.id),
+      async () =>
+        (
+          await (this.constructor as typeof Collection).findByPk(this.id, {
+            attributes: ["documentStructure"],
+            includeDocumentStructure: true,
+            rejectOnEmpty: true,
+          })
+        ).documentStructure,
+      Collection.DOCUMENT_STRUCTURE_CACHE_TTL
+    );
+    return result ?? null;
+  };
+
   getDocumentTree = (documentId: string): NavigationNode | null => {
     if (!this.documentStructure) {
       return null;
@@ -744,6 +817,42 @@ class Collection extends ParanoidModel<
       ...result,
       children: sortNavigationNodes(result.children, this.sort),
     };
+  };
+
+  /**
+   * Archives the collection and all of its non-archived documents. The
+   * collection's `archivedAt` and `archivedBy` are set to now and the acting
+   * user respectively, and child documents inherit the same `archivedAt`.
+   *
+   * @param ctx - the API context, including the acting user and optional transaction.
+   * @returns the updated collection.
+   */
+  archiveWithCtx = async (ctx: APIContext) => {
+    const { transaction } = ctx.state;
+    const { user } = ctx.state.auth;
+
+    this.archivedAt = new Date();
+    this.archivedById = user.id;
+    this.archivedBy = user;
+
+    await this.saveWithCtx(ctx, undefined, { name: "archive" });
+
+    await Document.update(
+      {
+        lastModifiedById: user.id,
+        archivedAt: this.archivedAt,
+      },
+      {
+        where: {
+          teamId: this.teamId,
+          collectionId: this.id,
+          archivedAt: { [Op.is]: null },
+        },
+        transaction,
+      }
+    );
+
+    return this;
   };
 
   deleteDocument = async function (document: Document, options?: FindOptions) {

@@ -2,37 +2,19 @@ import type { EditorState, Selection } from "prosemirror-state";
 import Suggestion from "~/editor/extensions/Suggestion";
 import { NodeSelection, TextSelection } from "prosemirror-state";
 import * as React from "react";
+
 import filterExcessSeparators from "@shared/editor/lib/filterExcessSeparators";
+import { buildSelectionContext } from "@shared/editor/lib/buildSelectionContext";
 import {
   getMarkRange,
   getMarkRangeNodeSelection,
 } from "@shared/editor/queries/getMarkRange";
 import { isInCode } from "@shared/editor/queries/isInCode";
 import { isInNotice } from "@shared/editor/queries/isInNotice";
-import { isNodeActive } from "@shared/editor/queries/isNodeActive";
-import {
-  getColumnIndex,
-  getRowIndex,
-  isTableSelected,
-} from "@shared/editor/queries/table";
 import type { MenuItem } from "@shared/editor/types";
 import useBoolean from "~/hooks/useBoolean";
-import useDictionary from "~/hooks/useDictionary";
 import useEventListener from "~/hooks/useEventListener";
 import useMobile from "~/hooks/useMobile";
-import getAttachmentMenuItems from "../menus/attachment";
-import getButtonMenuItems from "../menus/button";
-import getCodeMenuItems from "../menus/code";
-import getDividerMenuItems from "../menus/divider";
-import getEmbedMenuItems from "../menus/embed";
-import getFormattingMenuItems from "../menus/formatting";
-import getImageMenuItems from "../menus/image";
-import getNoticeMenuItems from "../menus/notice";
-import getReadOnlyMenuItems from "../menus/readOnly";
-import getTableMenuItems from "../menus/table";
-import getTableColMenuItems from "../menus/tableCol";
-import getTableRowMenuItems from "../menus/tableRow";
-import getVideoMenuItems from "../menus/video";
 import {
   columnDragPluginKey,
   rowDragPluginKey,
@@ -68,7 +50,6 @@ function useIsDragging(state: EditorState) {
   useEventListener("dragend", setNotDragging);
   useEventListener("drop", setNotDragging);
 
-  // Check if table row or column is being dragged
   const columnDragState = columnDragPluginKey.getState(state);
   const rowDragState = rowDragPluginKey.getState(state);
   const isTableDragging =
@@ -86,8 +67,7 @@ enum Toolbar {
 
 export function SelectionToolbar(props: Props) {
   const { readOnly = false } = props;
-  const { view, extensions, commands } = useEditor();
-  const dictionary = useDictionary();
+  const { view, extensions, commands, selectionToolbarMenus } = useEditor();
   const menuRef = React.useRef<HTMLDivElement | null>(null);
   const isMobile = useMobile();
   const isActive = props.isActive || isMobile;
@@ -178,7 +158,6 @@ export function SelectionToolbar(props: Props) {
     }
   }, [autoFocusLinkInput, activeToolbar]);
 
-  // Refocus the editor when the link toolbar closes to prevent focus loss
   const prevActiveToolbar = React.useRef(activeToolbar);
   React.useLayoutEffect(() => {
     if (
@@ -209,7 +188,6 @@ export function SelectionToolbar(props: Props) {
         return;
       }
 
-      // Don't collapse selection if any suggestion menu is open
       const isSuggestionMenuOpen = extensions.extensions.some(
         (ext) => ext instanceof Suggestion && ext.isOpen
       );
@@ -262,51 +240,16 @@ export function SelectionToolbar(props: Props) {
 
   const { isTemplate, rtl, canComment, canUpdate, ...rest } = props;
 
-  const isDividerSelection = isNodeActive(state.schema.nodes.hr)(state);
-  const colIndex = getColumnIndex(state);
-  const rowIndex = getRowIndex(state);
-  let items: MenuItem[] = [];
-  let align: "center" | "start" | "end" = "center";
+  // Build selection context once, shared across all menu matchers
+  const ctx = buildSelectionContext(state, { readOnly, isTemplate, rtl });
 
-  if (
-    isCodeSelection &&
-    (selection.empty || selection instanceof NodeSelection)
-  ) {
-    items = getCodeMenuItems(state, readOnly, dictionary);
-    align = "end";
-  } else if (isTableSelected(state)) {
-    items = getTableMenuItems(state, readOnly, dictionary);
-  } else if (colIndex !== undefined) {
-    items = getTableColMenuItems(state, readOnly, dictionary, {
-      index: colIndex,
-      rtl,
-    });
-  } else if (rowIndex !== undefined) {
-    items = getTableRowMenuItems(state, readOnly, dictionary, {
-      index: rowIndex,
-    });
-  } else if (isImageSelection) {
-    items = getImageMenuItems(state, readOnly, dictionary);
-  } else if (isAttachmentSelection) {
-    items = getAttachmentMenuItems(state, readOnly, dictionary);
-  } else if (isButtonSelection) {
-    items = getButtonMenuItems(state, readOnly, dictionary);
-  } else if (isVideoSelection) {
-    items = getVideoMenuItems(state, readOnly, dictionary);
-  } else if (isEmbedSelection) {
-    items = getEmbedMenuItems(state, readOnly, dictionary);
-  } else if (isDividerSelection) {
-    items = getDividerMenuItems(state, readOnly, dictionary);
-  } else if (readOnly) {
-    items = getReadOnlyMenuItems(state, !!canUpdate, dictionary);
-  } else if (isNoticeSelection && selection.empty) {
-    items = getNoticeMenuItems(state, readOnly, dictionary);
-    align = "end";
-  } else {
-    items = getFormattingMenuItems(state, isTemplate, dictionary);
-  }
+  // Find the first matching menu from the registry (sorted by priority)
+  const matched = selectionToolbarMenus.find((menu) => menu.matches(ctx));
 
-  // Some extensions may be disabled, remove corresponding items
+  let items: MenuItem[] = matched ? matched.getItems(ctx) : [];
+  const align = matched?.align ?? "center";
+
+  // Filter out items for disabled extensions or invisible items
   items = items.filter((item) => {
     if (item.name === "separator") {
       return true;
@@ -396,7 +339,6 @@ export function SelectionToolbar(props: Props) {
       {activeToolbar === Toolbar.Link ? (
         <LinkEditor
           key={`link-${selection.anchor}`}
-          dictionary={dictionary}
           autoFocus={autoFocusLinkInput}
           view={view}
           mark={linkMark ? linkMark.mark : undefined}
@@ -412,7 +354,6 @@ export function SelectionToolbar(props: Props) {
           key={`embed-${selection.anchor}`}
           node={mediaNode}
           view={view}
-          dictionary={dictionary}
           onLinkUpdate={() => setActiveToolbar(null)}
           onLinkRemove={() => setActiveToolbar(null)}
           onEscape={() => setActiveToolbar(Toolbar.Menu)}
@@ -423,7 +364,6 @@ export function SelectionToolbar(props: Props) {
           key={`button-${selection.anchor}`}
           node={buttonNode}
           view={view}
-          dictionary={dictionary}
           autoFocus
         />
       ) : activeToolbar === Toolbar.Menu && items.length ? (

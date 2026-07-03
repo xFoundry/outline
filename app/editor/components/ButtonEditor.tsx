@@ -3,21 +3,21 @@ import type { Node } from "prosemirror-model";
 import { NodeSelection, Selection, TextSelection } from "prosemirror-state";
 import type { EditorView } from "prosemirror-view";
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import Flex from "~/components/Flex";
 import Tooltip from "~/components/Tooltip";
 import Input from "~/editor/components/Input";
-import type { Dictionary } from "~/hooks/useDictionary";
 import ToolbarButton from "./ToolbarButton";
 
 type Props = {
   node?: Node;
   view: EditorView;
-  dictionary: Dictionary;
   autoFocus?: boolean;
 };
 
-export function ButtonEditor({ node, view, dictionary, autoFocus }: Props) {
+export function ButtonEditor({ node, view, autoFocus }: Props) {
+  const { t } = useTranslation();
   const [localLabel, setLocalLabel] = useState(
     (node?.attrs.label as string) ?? ""
   );
@@ -120,20 +120,20 @@ export function ButtonEditor({ node, view, dictionary, autoFocus }: Props) {
         <Label>Link</Label>
         <Input
           value={localHref}
-          placeholder={dictionary.pasteLink}
+          placeholder={t("Paste a link")}
           onChange={(e) => setLocalHref(e.target.value)}
           onKeyDown={handleKeyDown}
           readOnly={!view.editable}
         />
       </InputGroup>
       <ButtonGroup>
-        <Tooltip content={dictionary.openLink}>
+        <Tooltip content={t("Open link")}>
           <ToolbarButton onClick={openLink} disabled={!localHref}>
             <OpenIcon />
           </ToolbarButton>
         </Tooltip>
         {view.editable && (
-          <Tooltip content={dictionary.deleteButton}>
+          <Tooltip content={t("Delete button")}>
             <ToolbarButton onClick={remove}>
               <TrashIcon />
             </ToolbarButton>

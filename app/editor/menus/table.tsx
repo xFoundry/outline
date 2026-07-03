@@ -4,21 +4,24 @@ import {
   TableColumnsDistributeIcon,
   TrashIcon,
 } from "outline-icons";
-import type { EditorState } from "prosemirror-state";
 import { isNodeActive } from "@shared/editor/queries/isNodeActive";
-import type { MenuItem } from "@shared/editor/types";
+import { t } from "i18next";
+import type { MenuItem, SelectionContext } from "@shared/editor/types";
 import { TableLayout } from "@shared/editor/types";
-import type { Dictionary } from "~/hooks/useDictionary";
 
+/**
+ * Returns menu items for the table selection toolbar (full table selected).
+ *
+ * @param ctx - the current selection context.
+ * @returns an array of menu items.
+ */
 export default function tableMenuItems(
-  state: EditorState,
-  readOnly: boolean,
-  dictionary: Dictionary
+  ctx: SelectionContext
 ): MenuItem[] {
-  if (readOnly) {
+  if (ctx.readOnly) {
     return [];
   }
-  const { schema } = state;
+  const { schema, state } = ctx;
 
   const isFullWidth = isNodeActive(schema.nodes.table, {
     layout: TableLayout.fullWidth,
@@ -27,16 +30,14 @@ export default function tableMenuItems(
   return [
     {
       name: "setTableAttr",
-      tooltip: isFullWidth
-        ? dictionary.alignDefaultWidth
-        : dictionary.alignFullWidth,
+      tooltip: isFullWidth ? t("Default width") : t("Full width"),
       icon: <AlignFullWidthIcon />,
       attrs: isFullWidth ? { layout: null } : { layout: TableLayout.fullWidth },
       active: () => isFullWidth,
     },
     {
       name: "distributeColumns",
-      tooltip: dictionary.distributeColumns,
+      tooltip: t("Distribute columns"),
       icon: <TableColumnsDistributeIcon />,
     },
     {
@@ -44,7 +45,7 @@ export default function tableMenuItems(
     },
     {
       name: "deleteTable",
-      tooltip: dictionary.deleteTable,
+      tooltip: t("Delete table"),
       icon: <TrashIcon />,
     },
     {
@@ -52,7 +53,7 @@ export default function tableMenuItems(
     },
     {
       name: "exportTable",
-      tooltip: dictionary.exportAsCSV,
+      tooltip: t("Export as CSV"),
       label: "CSV",
       attrs: { format: "csv", fileName: `${window.document.title}.csv` },
       icon: <DownloadIcon />,

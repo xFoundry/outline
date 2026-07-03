@@ -1,7 +1,5 @@
 import * as Collapsible from "@radix-ui/react-collapsible";
-import filter from "lodash/filter";
-import includes from "lodash/includes";
-import isEqual from "lodash/isEqual";
+import { filter, includes, isEqual } from "es-toolkit/compat";
 import { DisclosureIcon } from "outline-icons";
 import { useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
@@ -9,12 +7,14 @@ import { useTranslation, Trans } from "react-i18next";
 import styled from "styled-components";
 import { randomString } from "@shared/random";
 import { TeamPreference } from "@shared/types";
+import { WebhookSubscriptionValidation } from "@shared/validations";
 import type WebhookSubscription from "~/models/WebhookSubscription";
 import Button from "~/components/Button";
 import Input from "~/components/Input";
 import Text from "~/components/Text";
 import useCurrentTeam from "~/hooks/useCurrentTeam";
 import useMobile from "~/hooks/useMobile";
+import isCloudHosted from "~/utils/isCloudHosted";
 import Flex from "@shared/components/Flex";
 
 const WEBHOOK_EVENTS = {
@@ -155,6 +155,9 @@ function WebhookSubscriptionForm({ handleSubmit, webhookSubscription }: Props) {
   });
 
   const events = watch("events");
+  const url = watch("url");
+  const showInsecureUrlWarning =
+    !isCloudHosted && typeof url === "string" && url.startsWith("http://");
   const selectedGroups = filter(events, (e) => !e.includes("."));
   const isAllEventSelected = includes(events, "*");
   const filteredEvents = filter(events, (e) => {
@@ -226,10 +229,21 @@ function WebhookSubscriptionForm({ handleSubmit, webhookSubscription }: Props) {
         <Input
           required
           flex
-          pattern="https://.*"
+          pattern={isCloudHosted ? "https://.*" : "https?://.*"}
+          maxLength={WebhookSubscriptionValidation.maxUrlLength}
           placeholder="https://…"
           label={t("URL")}
-          {...register("url", { required: true })}
+          error={
+            showInsecureUrlWarning
+              ? t(
+                  "Webhook delivery over http is insecure, use https if possible"
+                )
+              : undefined
+          }
+          {...register("url", {
+            required: true,
+            maxLength: WebhookSubscriptionValidation.maxUrlLength,
+          })}
         />
         <Input
           flex

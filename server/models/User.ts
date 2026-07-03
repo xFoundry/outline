@@ -55,12 +55,14 @@ import type { APIContext } from "@server/types";
 import { VerificationCode } from "@server/utils/VerificationCode";
 import parseAttachmentIds from "@server/utils/parseAttachmentIds";
 import { CacheHelper } from "@server/utils/CacheHelper";
+import { normalizeIp } from "@server/utils/ip";
 import { RedisPrefixHelper } from "@server/utils/RedisPrefixHelper";
 import { ValidationError } from "../errors";
 import Attachment from "./Attachment";
 import AuthenticationProvider from "./AuthenticationProvider";
 import Collection from "./Collection";
 import Group from "./Group";
+import GroupUser from "./GroupUser";
 import Team from "./Team";
 import UserAuthentication from "./UserAuthentication";
 import UserMembership from "./UserMembership";
@@ -82,6 +84,7 @@ export enum UserFlag {
   Desktop = "desktop",
   DesktopWeb = "desktopWeb",
   MobileWeb = "mobileWeb",
+  MCP = "mcp",
   AvatarUpdated = "avatarUpdated",
 }
 
@@ -239,9 +242,15 @@ class User extends ParanoidModel<
   lastActiveAt: Date | null;
 
   @IsIP
-  @Column
   @SkipChangeset
-  lastActiveIp: string | null;
+  @Column(DataType.STRING)
+  get lastActiveIp(): string | null {
+    return this.getDataValue("lastActiveIp");
+  }
+
+  set lastActiveIp(value: string | null) {
+    this.setDataValue("lastActiveIp", normalizeIp(value));
+  }
 
   @IsDate
   @Column
@@ -249,9 +258,15 @@ class User extends ParanoidModel<
   lastSignedInAt: Date | null;
 
   @IsIP
-  @Column
   @SkipChangeset
-  lastSignedInIp: string | null;
+  @Column(DataType.STRING)
+  get lastSignedInIp(): string | null {
+    return this.getDataValue("lastSignedInIp");
+  }
+
+  set lastSignedInIp(value: string | null) {
+    this.setDataValue("lastSignedInIp", normalizeIp(value));
+  }
 
   @IsDate
   @Column
@@ -681,7 +696,7 @@ class User extends ParanoidModel<
    * @param service The authentication service used to generate the token, if applicable
    * @returns The session token
    */
-  getJwtToken = (expiresAt?: Date, service?: string) =>
+  getSessionToken = (expiresAt?: Date, service?: string) =>
     JWT.sign(
       {
         id: this.id,
@@ -922,6 +937,50 @@ class User extends ParanoidModel<
           },
         }
       );
+    }
+  }
+
+  // When a user's suspension state changes, invalidate the cached member count
+  // for every group they belong to so the count reflects only active members.
+  @AfterUpdate
+  static async invalidateGroupMemberCount(
+    model: User,
+    options: InstanceUpdateOptions<InferAttributes<User>>
+  ) {
+    if (!model.changed("suspendedAt")) {
+      return;
+    }
+
+    const groupUsers = await GroupUser.findAll({
+      attributes: ["groupId"],
+      where: { userId: model.id },
+      transaction: options.transaction,
+      raw: true,
+    });
+
+    const groupIds = [
+      ...new Set(groupUsers.map((groupUser) => groupUser.groupId)),
+    ];
+
+    if (!groupIds.length) {
+      return;
+    }
+
+    const invalidate = async () => {
+      await Promise.all(
+        groupIds.map((groupId) =>
+          CacheHelper.removeData(
+            RedisPrefixHelper.getCounterCacheKey("Group", "members", groupId)
+          )
+        )
+      );
+    };
+
+    if (options.transaction) {
+      const transaction = options.transaction.parent || options.transaction;
+      transaction.afterCommit(invalidate);
+    } else {
+      await invalidate();
     }
   }
 

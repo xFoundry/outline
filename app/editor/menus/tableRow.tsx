@@ -15,8 +15,8 @@ import {
   isMergedCellSelection,
   isMultipleCellSelection,
 } from "@shared/editor/queries/table";
-import type { MenuItem, NodeAttrMark } from "@shared/editor/types";
-import type { Dictionary } from "~/hooks/useDictionary";
+import { t } from "i18next";
+import type { MenuItem, NodeAttrMark, SelectionContext } from "@shared/editor/types";
 import { ArrowDownIcon, ArrowUpIcon } from "~/components/Icons/ArrowIcon";
 import CircleIcon from "~/components/Icons/CircleIcon";
 import CellBackgroundColorPicker from "../components/CellBackgroundColorPicker";
@@ -24,7 +24,11 @@ import TableCell from "@shared/editor/nodes/TableCell";
 import { DottedCircleIcon } from "~/components/Icons/DottedCircleIcon";
 
 /**
- * Get the set of background colors used in a row
+ * Get the set of background colors used in a row.
+ *
+ * @param state - the current editor state.
+ * @param rowIndex - the row index.
+ * @returns a set of hex color strings.
  */
 function getRowColors(state: EditorState, rowIndex: number): Set<string> {
   const colors = new Set<string>();
@@ -46,19 +50,21 @@ function getRowColors(state: EditorState, rowIndex: number): Set<string> {
   return colors;
 }
 
+/**
+ * Returns menu items for the table row selection toolbar.
+ *
+ * @param ctx - the current selection context.
+ * @returns an array of menu items.
+ */
 export default function tableRowMenuItems(
-  state: EditorState,
-  readOnly: boolean,
-  dictionary: Dictionary,
-  options: {
-    index: number;
-  }
+  ctx: SelectionContext
 ): MenuItem[] {
-  if (readOnly) {
+  if (ctx.readOnly) {
     return [];
   }
 
-  const { index } = options;
+  const index = ctx.rowIndex!;
+  const { state } = ctx;
   const { selection } = state;
 
   if (!(selection instanceof CellSelection)) {
@@ -77,7 +83,7 @@ export default function tableRowMenuItems(
 
   return [
     {
-      tooltip: dictionary.background,
+      tooltip: t("Background color"),
       icon:
         rowColors.size > 1 ? (
           <CircleIcon color="rainbow" />
@@ -90,7 +96,7 @@ export default function tableRowMenuItems(
         ...[
           {
             name: "toggleRowBackgroundAndCollapseSelection",
-            label: dictionary.none,
+            label: t("None"),
             icon: <DottedCircleIcon retainColor color="transparent" />,
             active: () => (hasBackground ? false : true),
             attrs: { color: null },
@@ -139,32 +145,32 @@ export default function tableRowMenuItems(
       children: [
         {
           name: "toggleHeaderRow",
-          label: dictionary.toggleHeader,
+          label: t("Toggle header"),
           icon: <TableHeaderRowIcon />,
           visible: index === 0,
         },
         {
           name: "addRowBefore",
-          label: dictionary.addRowBefore,
+          label: t("Insert before"),
           icon: <InsertAboveIcon />,
           attrs: { index },
         },
         {
           name: "addRowAfter",
-          label: dictionary.addRowAfter,
+          label: t("Insert after"),
           icon: <InsertBelowIcon />,
           attrs: { index },
         },
         {
           name: "moveTableRow",
-          label: dictionary.moveRowUp,
+          label: t("Move up"),
           icon: <ArrowUpIcon />,
           attrs: { from: index, to: index - 1 },
           visible: index > 0,
         },
         {
           name: "moveTableRow",
-          label: dictionary.moveRowDown,
+          label: t("Move down"),
           icon: <ArrowDownIcon />,
           attrs: { from: index, to: index + 1 },
           visible: index < tableMap.map.height - 1,
@@ -174,13 +180,13 @@ export default function tableRowMenuItems(
         },
         {
           name: "mergeCells",
-          label: dictionary.mergeCells,
+          label: t("Merge cells"),
           icon: <TableMergeCellsIcon />,
           visible: isMultipleCellSelection(state),
         },
         {
           name: "splitCell",
-          label: dictionary.splitCell,
+          label: t("Split cell"),
           icon: <TableSplitCellsIcon />,
           visible: isMergedCellSelection(state),
         },
@@ -189,7 +195,7 @@ export default function tableRowMenuItems(
         },
         {
           name: "deleteRow",
-          label: dictionary.deleteRow,
+          label: t("Delete"),
           dangerous: true,
           icon: <TrashIcon />,
         },

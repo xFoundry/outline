@@ -6,22 +6,23 @@ import {
   AlignFullWidthIcon,
   EditIcon,
 } from "outline-icons";
-import type { EditorState } from "prosemirror-state";
 import * as React from "react";
 import { isNodeActive } from "@shared/editor/queries/isNodeActive";
-import type { MenuItem } from "@shared/editor/types";
-import type { Dictionary } from "~/hooks/useDictionary";
+import type { MenuItem, SelectionContext } from "@shared/editor/types";
+import { t } from "i18next";
 
-export default function embedMenuItems(
-  state: EditorState,
-  readOnly: boolean | undefined,
-  dictionary: Dictionary
-): MenuItem[] {
-  if (readOnly) {
+/**
+ * Returns menu items for the embed selection toolbar.
+ *
+ * @param ctx - the current selection context.
+ * @returns an array of menu items.
+ */
+export default function embedMenuItems(ctx: SelectionContext): MenuItem[] {
+  if (ctx.readOnly) {
     return [];
   }
 
-  const { schema } = state;
+  const { schema } = ctx;
   const isLeftAligned = isNodeActive(schema.nodes.embed, {
     layoutClass: "left-50",
   });
@@ -35,29 +36,29 @@ export default function embedMenuItems(
   return [
     {
       name: "alignEmbedLeft",
-      tooltip: dictionary.alignLeft,
+      tooltip: t("Align left"),
       icon: <AlignImageLeftIcon />,
       active: isLeftAligned,
     },
     {
       name: "alignEmbedCenter",
-      tooltip: dictionary.alignCenter,
+      tooltip: t("Align center"),
       icon: <AlignImageCenterIcon />,
-      active: (state) =>
-        isNodeActive(schema.nodes.embed)(state) &&
-        !isLeftAligned(state) &&
-        !isRightAligned(state) &&
-        !isFullWidthAligned(state),
+      active: (s) =>
+        isNodeActive(schema.nodes.embed)(s) &&
+        !isLeftAligned(s) &&
+        !isRightAligned(s) &&
+        !isFullWidthAligned(s),
     },
     {
       name: "alignEmbedRight",
-      tooltip: dictionary.alignRight,
+      tooltip: t("Align right"),
       icon: <AlignImageRightIcon />,
       active: isRightAligned,
     },
     {
       name: "alignEmbedFullWidth",
-      tooltip: dictionary.alignFullWidth,
+      tooltip: t("Full width"),
       icon: <AlignFullWidthIcon />,
       active: isFullWidthAligned,
     },
@@ -66,12 +67,12 @@ export default function embedMenuItems(
     },
     {
       name: "editEmbedUrl",
-      tooltip: dictionary.editEmbedUrl,
+      tooltip: t("Edit embed URL"),
       icon: <EditIcon />,
     },
     {
       name: "deleteEmbed",
-      tooltip: dictionary.deleteEmbed,
+      tooltip: t("Delete embed"),
       icon: <TrashIcon />,
     },
   ];

@@ -14,7 +14,6 @@ import {
   SortDescendingIcon,
   TableColumnsDistributeIcon,
 } from "outline-icons";
-import type { EditorState } from "prosemirror-state";
 import { CellSelection, selectedRect } from "prosemirror-tables";
 import { isNodeActive } from "@shared/editor/queries/isNodeActive";
 import {
@@ -24,16 +23,21 @@ import {
   isMultipleCellSelection,
   tableHasRowspan,
 } from "@shared/editor/queries/table";
-import type { MenuItem, NodeAttrMark } from "@shared/editor/types";
-import type { Dictionary } from "~/hooks/useDictionary";
+import { t } from "i18next";
+import type { MenuItem, NodeAttrMark, SelectionContext } from "@shared/editor/types";
 import { ArrowLeftIcon, ArrowRightIcon } from "~/components/Icons/ArrowIcon";
 import CircleIcon from "~/components/Icons/CircleIcon";
 import CellBackgroundColorPicker from "../components/CellBackgroundColorPicker";
 import TableCell from "@shared/editor/nodes/TableCell";
 import { DottedCircleIcon } from "~/components/Icons/DottedCircleIcon";
+import type { EditorState } from "prosemirror-state";
 
 /**
- * Get the set of background colors used in a column
+ * Get the set of background colors used in a column.
+ *
+ * @param state - the current editor state.
+ * @param colIndex - the column index.
+ * @returns a set of hex color strings.
  */
 function getColumnColors(state: EditorState, colIndex: number): Set<string> {
   const colors = new Set<string>();
@@ -55,21 +59,23 @@ function getColumnColors(state: EditorState, colIndex: number): Set<string> {
   return colors;
 }
 
+/**
+ * Returns menu items for the table column selection toolbar.
+ *
+ * @param ctx - the current selection context.
+ * @returns an array of menu items.
+ */
 export default function tableColMenuItems(
-  state: EditorState,
-  readOnly: boolean,
-  dictionary: Dictionary,
-  options: {
-    index: number;
-    rtl: boolean;
-  }
+  ctx: SelectionContext
 ): MenuItem[] {
-  if (readOnly) {
+  if (ctx.readOnly) {
     return [];
   }
 
-  const { index, rtl } = options;
-  const { schema, selection } = state;
+  const index = ctx.colIndex!;
+  const rtl = ctx.rtl;
+  const { schema, state } = ctx;
+  const { selection } = state;
   const selectedCols = getAllSelectedColumns(state);
 
   if (!(selection instanceof CellSelection)) {
@@ -89,7 +95,7 @@ export default function tableColMenuItems(
   return [
     {
       name: "setColumnAttr",
-      tooltip: dictionary.alignLeft,
+      tooltip: t("Align left"),
       icon: <AlignLeftIcon />,
       attrs: { index, alignment: "left" },
       active: isNodeActive(schema.nodes.th, {
@@ -100,7 +106,7 @@ export default function tableColMenuItems(
     },
     {
       name: "setColumnAttr",
-      tooltip: dictionary.alignCenter,
+      tooltip: t("Align center"),
       icon: <AlignCenterIcon />,
       attrs: { index, alignment: "center" },
       active: isNodeActive(schema.nodes.th, {
@@ -111,7 +117,7 @@ export default function tableColMenuItems(
     },
     {
       name: "setColumnAttr",
-      tooltip: dictionary.alignRight,
+      tooltip: t("Align right"),
       icon: <AlignRightIcon />,
       attrs: { index, alignment: "right" },
       active: isNodeActive(schema.nodes.th, {
@@ -125,14 +131,14 @@ export default function tableColMenuItems(
     },
     {
       name: "sortTable",
-      tooltip: dictionary.sortAsc,
+      tooltip: t("Sort ascending"),
       attrs: { index, direction: "asc" },
       icon: <SortAscendingIcon />,
       disabled: tableHasRowspan(state),
     },
     {
       name: "sortTable",
-      tooltip: dictionary.sortDesc,
+      tooltip: t("Sort descending"),
       attrs: { index, direction: "desc" },
       icon: <SortDescendingIcon />,
       disabled: tableHasRowspan(state),
@@ -141,7 +147,7 @@ export default function tableColMenuItems(
       name: "separator",
     },
     {
-      tooltip: dictionary.background,
+      tooltip: t("Background color"),
       icon:
         colColors.size > 1 ? (
           <CircleIcon color="rainbow" />
@@ -154,7 +160,7 @@ export default function tableColMenuItems(
         ...[
           {
             name: "toggleColumnBackgroundAndCollapseSelection",
-            label: dictionary.none,
+            label: t("None"),
             icon: <DottedCircleIcon retainColor color="transparent" />,
             active: () => (hasBackground ? false : true),
             attrs: { color: null },
@@ -203,32 +209,32 @@ export default function tableColMenuItems(
       children: [
         {
           name: "toggleHeaderColumn",
-          label: dictionary.toggleHeader,
+          label: t("Toggle header"),
           icon: <TableHeaderColumnIcon />,
           visible: index === 0,
         },
         {
           name: rtl ? "addColumnAfter" : "addColumnBefore",
-          label: rtl ? dictionary.addColumnAfter : dictionary.addColumnBefore,
+          label: rtl ? t("Insert after") : t("Insert before"),
           icon: <InsertLeftIcon />,
           attrs: { index },
         },
         {
           name: rtl ? "addColumnBefore" : "addColumnAfter",
-          label: rtl ? dictionary.addColumnBefore : dictionary.addColumnAfter,
+          label: rtl ? t("Insert before") : t("Insert after"),
           icon: <InsertRightIcon />,
           attrs: { index },
         },
         {
           name: "moveTableColumn",
-          label: dictionary.moveColumnLeft,
+          label: t("Move left"),
           icon: <ArrowLeftIcon />,
           attrs: { from: index, to: index - 1 },
           visible: index > 0,
         },
         {
           name: "moveTableColumn",
-          label: dictionary.moveColumnRight,
+          label: t("Move right"),
           icon: <ArrowRightIcon />,
           attrs: { from: index, to: index + 1 },
           visible: index < tableMap.map.width - 1,
@@ -238,20 +244,20 @@ export default function tableColMenuItems(
         },
         {
           name: "mergeCells",
-          label: dictionary.mergeCells,
+          label: t("Merge cells"),
           icon: <TableMergeCellsIcon />,
           visible: isMultipleCellSelection(state),
         },
         {
           name: "splitCell",
-          label: dictionary.splitCell,
+          label: t("Split cell"),
           icon: <TableSplitCellsIcon />,
           visible: isMergedCellSelection(state),
         },
         {
           name: "distributeColumns",
           visible: selectedCols.length > 1,
-          label: dictionary.distributeColumns,
+          label: t("Distribute columns"),
           icon: <TableColumnsDistributeIcon />,
         },
         {
@@ -260,7 +266,7 @@ export default function tableColMenuItems(
         {
           name: "deleteColumn",
           dangerous: true,
-          label: dictionary.deleteColumn,
+          label: t("Delete"),
           icon: <TrashIcon />,
         },
       ],
